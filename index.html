@@ -17,7 +17,7 @@
   #login input{width:100%;background:#0d1c25;border:1px solid #21404e;border-radius:8px;padding:11px;color:#eaf2f6;font-size:14px}
   #login button{width:100%;margin-top:22px}
   #loginErr{color:#e07a5f;font-size:12.5px;margin-top:12px;min-height:16px}
-  header{display:flex;align-items:center;justify-content:space-between;padding:22px 34px;background:var(--card);border-bottom:1px solid var(--line)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 34px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
   header h1{font-size:20px;margin:0;font-weight:700}
   header h1 span{color:var(--teal)}
   header .sub{color:var(--muted);font-size:12.5px;margin-top:3px}
@@ -26,7 +26,19 @@
   button{background:var(--teal);color:#fff;border:0;border-radius:8px;padding:9px 15px;font-weight:600;cursor:pointer;font-size:13px}
   button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
   button:hover{filter:brightness(1.05)}
+  /* date picker */
+  .picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .seg{display:inline-flex;background:#eef3f3;border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+  .seg button{background:transparent;color:var(--muted);padding:6px 13px;border-radius:7px;font-weight:600}
+  .seg button.active{background:var(--teal);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .seg button:hover{filter:none;color:var(--ink)}
+  .seg button.active:hover{color:#fff}
+  #customWrap{display:none;align-items:center;gap:6px}
+  #customWrap input{border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:13px;color:var(--ink);background:#fff}
+  #customWrap span{color:var(--muted);font-size:13px}
+  #applyCustom{padding:7px 12px}
   .wrap{padding:26px 34px;max-width:1240px;margin:0 auto}
+  .rangeLbl{color:var(--muted);font-size:12.5px;margin:0 0 16px;font-weight:600}
   .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:22px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;border-left:4px solid var(--teal)}
   .kpi:nth-child(2){border-left-color:var(--coral)} .kpi:nth-child(3){border-left-color:var(--sand)}
@@ -67,11 +79,24 @@
   <header>
     <div><h1>White Bay Villas · <span>Leads Dashboard</span></h1>
     <div class="sub">All channels — calls, texts, email & bookings · live from the attribution warehouse</div></div>
+    <div class="picker">
+      <div class="seg" id="seg">
+        <button data-range="today">Today</button>
+        <button data-range="7d">7 days</button>
+        <button data-range="30d" class="active">30 days</button>
+        <button data-range="custom">Custom</button>
+      </div>
+      <span id="customWrap">
+        <input type="date" id="dFrom"><span>→</span><input type="date" id="dTo">
+        <button id="applyCustom">Apply</button>
+      </span>
+    </div>
     <div class="right"><span id="updated">Loading…</span>
       <button onclick="loadAll()">Refresh</button>
       <button class="ghost" onclick="signOut()">Sign out</button></div>
   </header>
   <div class="wrap">
+    <div class="rangeLbl" id="rangeLbl"></div>
     <div class="kpis" id="kpis"></div>
 
     <div class="grid">
@@ -107,17 +132,50 @@ const session=()=>{try{return JSON.parse(localStorage.getItem(SS_KEY));}catch(e)
 const setSession=s=>localStorage.setItem(SS_KEY,JSON.stringify(s));
 const clearSession=()=>localStorage.removeItem(SS_KEY);
 
+// ---------- date range state ----------
+let range={from:null,to:null,label:"Last 30 days"};
+const DAY=864e5;
+function presetRange(p){
+  const now=new Date();
+  let from;
+  if(p==='today'){from=new Date(now.getFullYear(),now.getMonth(),now.getDate());range.label="Today";}
+  else if(p==='7d'){from=new Date(now.getTime()-7*DAY);range.label="Last 7 days";}
+  else{from=new Date(now.getTime()-30*DAY);range.label="Last 30 days";}
+  range.from=from.toISOString(); range.to=now.toISOString();
+}
+function customRange(){
+  const f=document.getElementById("dFrom").value, t=document.getElementById("dTo").value;
+  if(!f||!t) return false;
+  range.from=new Date(f+"T00:00:00").toISOString();
+  range.to=new Date(t+"T23:59:59").toISOString();
+  range.label=new Date(f).toLocaleDateString()+" → "+new Date(t).toLocaleDateString();
+  return true;
+}
+presetRange('30d');
+
 async function signIn(email,password){
   const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
   const d=await r.json(); if(!r.ok) throw new Error(d.error_description||d.msg||d.message||"Sign-in failed"); setSession(d); return d;
 }
 async function refresh(){const s=session();const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:s.refresh_token})});const d=await r.json();if(!r.ok)throw new Error("refresh failed");setSession(d);return d;}
 function signOut(){clearSession();location.reload();}
+
+// RPC call to a date-parameterized function
+async function rpc(fn){
+  let s=session();
+  const call=()=>fetch(SUPABASE_URL+"/rest/v1/rpc/"+fn,{method:"POST",
+    headers:{apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token,"Content-Type":"application/json"},
+    body:JSON.stringify({p_from:range.from,p_to:range.to})});
+  let r=await call();
+  if(r.status===401){await refresh();s=session();r=await call();}
+  if(!r.ok)throw new Error("data fetch failed ("+fn+")"); return r.json();
+}
+// plain GET (used only for the silent session probe)
 async function api(path){
   let s=session();
   let r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token}});
   if(r.status===401){await refresh();s=session();r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token}});}
-  if(!r.ok)throw new Error("data fetch failed"); return r.json();
+  if(!r.ok)throw new Error("probe failed"); return r.json();
 }
 const cap=s=>(s||"").charAt(0).toUpperCase()+(s||"").slice(1);
 const money=n=>"$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:0});
@@ -142,13 +200,13 @@ function doughnut(id,labels,data,colors){
 
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
+  document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpi,funnel,agents,email,inbound,bsource,leads]=await Promise.all([
-      api("v_dashboard_kpis?select=*"),api("v_channel_funnel?select=*&order=inquiries.desc"),
-      api("v_quo_agents?select=*"),api("v_email_intent?select=*"),api("v_inbound_1800?select=*"),
-      api("v_booking_source?select=*"),api("v_high_intent_leads?select=*")
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads]=await Promise.all([
+      rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
+      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads")
     ]);
-    kpiCards(kpi[0]||{});
+    kpiCards(kpiA[0]||{});
     const fl=funnel.map(r=>cap(r.channel));
     bar("cInq",fl,[{label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:6}]);
     bar("cFunnel",fl,[
@@ -161,23 +219,45 @@ async function loadAll(){
       {label:"Connected",data:agents.map(r=>r.connected),backgroundColor:C.teal2,borderRadius:5},
       {label:"Voicemail",data:agents.map(r=>r.voicemail),backgroundColor:C.sand,borderRadius:5}]);
     const eo={hot:C.coral,warm:C.sand,cold:C.muted,operational:"#c3d0d6",unscored:"#dde6ea"};
-    doughnut("cEmail",email.map(r=>cap(r.intent)),email.map(r=>r.cnt),email.map(r=>eo[r.intent]||C.teal));
-    const ib=inbound[0]||{inbound:0,outbound:0};
-    bar("cInbound",["Inbound","Outbound"],[{label:"Calls",data:[ib.inbound,ib.outbound],backgroundColor:[C.teal,C.sand],borderRadius:6}]);
+    if(!email.length){doughnut("cEmail",["No email in range"],[1],["#dde6ea"]);}
+    else{doughnut("cEmail",email.map(r=>cap(r.intent)),email.map(r=>r.cnt),email.map(r=>eo[r.intent]||C.teal));}
+    const ib=inboundA[0]||{inbound:0,outbound:0};
+    bar("cInbound",["Inbound","Outbound"],[{label:"Calls",data:[ib.inbound||0,ib.outbound||0],backgroundColor:[C.teal,C.sand],borderRadius:6}]);
     const bw=document.getElementById("bsWrap");
-    if(!bsource.length){bw.innerHTML='<div class="empty">No bookings yet — connect Cloudbeds to populate.</div>';}
+    if(!bsource.length){bw.innerHTML='<div class="empty">No bookings in this range.</div>';}
     else{bw.innerHTML='<canvas id="cBook"></canvas>';bar("cBook",bsource.map(r=>cap(r.entered_via||"?")),[
       {label:"Confirmed",data:bsource.map(r=>r.confirmed),backgroundColor:C.teal,borderRadius:5},
       {label:"Pending",data:bsource.map(r=>r.pending),backgroundColor:C.sand,borderRadius:5}]);}
-    const tb=document.querySelector("#leadsTbl tbody");
-    if(!leads.length){document.getElementById("leadsWrap").innerHTML='<div class="empty">No hot/warm leads yet.</div>';}
-    else{tb.innerHTML=leads.map(l=>`<tr><td><b>${l.name||"—"}</b></td>
+    const wrap=document.getElementById("leadsWrap");
+    if(!leads.length){wrap.innerHTML='<div class="empty">No hot/warm leads in this range.</div>';}
+    else{wrap.innerHTML='<table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody>'
+      +leads.map(l=>`<tr><td><b>${l.name||"—"}</b></td>
       <td><span class="badge ${l.top_intent}">${l.top_intent}</span></td>
       <td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
-      <td>${fmtDate(l.last_touch)}</td><td style="color:var(--muted)">${(l.last_note||"").replace(/</g,"&lt;")}</td></tr>`).join("");}
+      <td>${fmtDate(l.last_touch)}</td><td style="color:var(--muted)">${(l.last_note||"").replace(/</g,"&lt;")}</td></tr>`).join("")
+      +'</tbody></table>';}
     document.getElementById("updated").textContent="Updated "+new Date().toLocaleString();
   }catch(e){document.getElementById("updated").textContent="Error loading data";console.error(e);}
 }
+
+// ---------- picker wiring ----------
+document.getElementById("seg").addEventListener("click",e=>{
+  const btn=e.target.closest("button"); if(!btn) return;
+  [...document.querySelectorAll("#seg button")].forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const p=btn.dataset.range;
+  const cw=document.getElementById("customWrap");
+  if(p==='custom'){
+    cw.style.display="inline-flex";
+    const now=new Date(), ago=new Date(now.getTime()-30*DAY);
+    if(!document.getElementById("dTo").value) document.getElementById("dTo").value=now.toISOString().slice(0,10);
+    if(!document.getElementById("dFrom").value) document.getElementById("dFrom").value=ago.toISOString().slice(0,10);
+  } else {
+    cw.style.display="none"; presetRange(p); loadAll();
+  }
+});
+document.getElementById("applyCustom").addEventListener("click",()=>{ if(customRange()) loadAll(); });
+
 function showApp(){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";loadAll();}
 document.getElementById("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();const b=document.getElementById("loginBtn"),er=document.getElementById("loginErr");
