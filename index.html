@@ -81,9 +81,10 @@
     <div class="sub">All channels — calls, texts, email & bookings · live from the attribution warehouse</div></div>
     <div class="picker">
       <div class="seg" id="seg">
+        <button data-range="all" class="active">All time</button>
         <button data-range="today">Today</button>
         <button data-range="7d">7 days</button>
-        <button data-range="30d" class="active">30 days</button>
+        <button data-range="30d">30 days</button>
         <button data-range="custom">Custom</button>
       </div>
       <span id="customWrap">
@@ -133,12 +134,14 @@ const setSession=s=>localStorage.setItem(SS_KEY,JSON.stringify(s));
 const clearSession=()=>localStorage.removeItem(SS_KEY);
 
 // ---------- date range state ----------
-let range={from:null,to:null,label:"Last 30 days"};
+let range={from:null,to:null,label:"All time"};
 const DAY=864e5;
+const EPOCH="2015-01-01T00:00:00.000Z";
 function presetRange(p){
   const now=new Date();
   let from;
-  if(p==='today'){from=new Date(now.getFullYear(),now.getMonth(),now.getDate());range.label="Today";}
+  if(p==='all'){range.from=EPOCH; range.to=now.toISOString(); range.label="All time"; return;}
+  else if(p==='today'){from=new Date(now.getFullYear(),now.getMonth(),now.getDate());range.label="Today";}
   else if(p==='7d'){from=new Date(now.getTime()-7*DAY);range.label="Last 7 days";}
   else{from=new Date(now.getTime()-30*DAY);range.label="Last 30 days";}
   range.from=from.toISOString(); range.to=now.toISOString();
@@ -151,7 +154,7 @@ function customRange(){
   range.label=new Date(f).toLocaleDateString()+" → "+new Date(t).toLocaleDateString();
   return true;
 }
-presetRange('30d');
+presetRange('all');
 
 async function signIn(email,password){
   const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
