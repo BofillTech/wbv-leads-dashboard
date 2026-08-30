@@ -116,6 +116,11 @@
       <div class="card"><h2>Bookings: online vs PMS</h2><p class="hint">Cloudbeds — fills in once connected</p><div id="bsWrap"><canvas id="cBook"></canvas></div></div>
     </div>
 
+    <div class="grid">
+      <div class="card"><h2>Calls — new vs existing</h2><p class="hint">What the phone activity is about (QUO calls)</p><canvas id="cResCall"></canvas></div>
+      <div class="card"><h2>Emails — new vs existing</h2><p class="hint">info@ inbox · automated &amp; noise shown separately</p><canvas id="cResEmail"></canvas></div>
+    </div>
+
     <div class="card full">
       <h2>High-intent leads</h2><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
@@ -202,14 +207,19 @@ function doughnut(id,labels,data,colors){
   charts[id]=new Chart(document.getElementById(id),{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:colors}]},
     options:{responsive:true,plugins:{legend:{position:"right",labels:{color:"#3a5562"}}}}});
 }
+function resChart(id,rows){
+  const cm={'New-booking outreach':C.teal,'Existing / logistics':C.sand,'Inbound (untagged)':C.teal2,'Voicemail / unclear':C.muted,'Guest - new inquiry':C.teal,'Guest - existing':C.sand,'Automated / internal':'#c3d0d6','Other / noise':'#dde6ea'};
+  if(!rows||!rows.length){doughnut(id,['No data in range'],[1],['#dde6ea']);return;}
+  doughnut(id,rows.map(r=>r.category),rows.map(r=>Number(r.cnt)),rows.map(r=>cm[r.category]||C.teal));
+}
 
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
-      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads")
+      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email")
     ]);
     kpiCards(kpiA[0]||{});
     const fl=funnel.map(r=>cap(r.channel));
@@ -241,6 +251,7 @@ async function loadAll(){
       <td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
       <td>${fmtDate(l.last_touch)}</td><td style="color:var(--muted)">${(l.last_note||"").replace(/</g,"&lt;")}</td></tr>`).join("")
       +'</tbody></table>';}
+    resChart("cResCall",rescall); resChart("cResEmail",resemail);
     document.getElementById("updated").textContent="Updated "+new Date().toLocaleString();
   }catch(e){document.getElementById("updated").textContent="Error loading data";console.error(e);}
 }
