@@ -33,7 +33,8 @@
   .seg button.active{background:var(--teal);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
   .seg button:hover{filter:none;color:var(--ink)}
   .seg button.active:hover{color:#fff}
-  #customWrap{display:none;align-items:center;gap:6px}
+  #customWrap{display:inline-flex;align-items:center;gap:6px}
+  #customWrap .lbl{color:var(--muted);font-size:12px;font-weight:600}
   #customWrap input{border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:13px;color:var(--ink);background:#fff}
   #customWrap span{color:var(--muted);font-size:13px}
   #applyCustom{padding:7px 12px}
@@ -88,7 +89,7 @@
         <button data-range="custom">Custom</button>
       </div>
       <span id="customWrap">
-        <input type="date" id="dFrom"><span>→</span><input type="date" id="dTo">
+        <span class="lbl">Dates:</span><input type="date" id="dFrom"><span>→</span><input type="date" id="dTo">
         <button id="applyCustom">Apply</button>
       </span>
     </div>
@@ -155,6 +156,7 @@ function customRange(){
   return true;
 }
 presetRange('all');
+(function(){const now=new Date(),ago=new Date(now.getTime()-30*DAY);const t=document.getElementById('dTo'),f=document.getElementById('dFrom');if(t&&!t.value)t.value=now.toISOString().slice(0,10);if(f&&!f.value)f.value=ago.toISOString().slice(0,10);})();
 
 async function signIn(email,password){
   const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
@@ -249,17 +251,15 @@ document.getElementById("seg").addEventListener("click",e=>{
   [...document.querySelectorAll("#seg button")].forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   const p=btn.dataset.range;
-  const cw=document.getElementById("customWrap");
   if(p==='custom'){
-    cw.style.display="inline-flex";
     const now=new Date(), ago=new Date(now.getTime()-30*DAY);
     if(!document.getElementById("dTo").value) document.getElementById("dTo").value=now.toISOString().slice(0,10);
     if(!document.getElementById("dFrom").value) document.getElementById("dFrom").value=ago.toISOString().slice(0,10);
   } else {
-    cw.style.display="none"; presetRange(p); loadAll();
+    presetRange(p); loadAll();
   }
 });
-document.getElementById("applyCustom").addEventListener("click",()=>{ if(customRange()) loadAll(); });
+document.getElementById("applyCustom").addEventListener("click",()=>{ if(customRange()){ [...document.querySelectorAll("#seg button")].forEach(b=>b.classList.remove("active")); const cb=document.querySelector('#seg button[data-range="custom"]'); if(cb) cb.classList.add("active"); loadAll(); } });
 
 function showApp(){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";loadAll();}
 document.getElementById("loginForm").addEventListener("submit",async e=>{
