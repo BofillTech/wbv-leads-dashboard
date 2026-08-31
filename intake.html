@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>White Bay Villas — Social Lead Intake</title>
+<style>
+  :root{--ink:#0f2230;--muted:#6f8794;--teal:#1f9c98;--teal2:#2bb3b0;--line:#e4ebee;--bg:#eef3f5;--card:#fff;--hot:#e07a5f;--sand:#e0b667}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+  .wrap{max-width:520px;margin:0 auto;padding:0 0 60px}
+  header{background:linear-gradient(160deg,#0e1a24,#0b141d);color:#eaf2f6;padding:22px 20px 20px;border-radius:0 0 18px 18px}
+  header h1{font-size:18px;margin:0 0 3px}
+  header p{margin:0;color:#8fa9b8;font-size:13px}
+  form{padding:18px 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(15,34,48,.05)}
+  label{display:block;font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);margin:14px 0 5px}
+  label.req::after{content:" *";color:var(--hot)}
+  .hint{font-size:11.5px;color:var(--muted);text-transform:none;font-weight:400;letter-spacing:0}
+  input,select,textarea{width:100%;font-size:16px;padding:11px 12px;border:1px solid #d3dde2;border-radius:10px;background:#fbfdfe;color:var(--ink);font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px rgba(31,156,152,.13)}
+  textarea{min-height:84px;resize:vertical}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+  .chip{flex:1 1 calc(50% - 8px);text-align:center;padding:11px 6px;border:1.5px solid #d3dde2;border-radius:10px;background:#fbfdfe;font-size:14px;font-weight:600;cursor:pointer;user-select:none}
+  .chip.on{border-color:var(--teal);background:rgba(31,156,152,.1);color:var(--teal)}
+  .protocol{margin-top:14px;background:rgba(224,182,103,.14);border:1px solid rgba(224,182,103,.5);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7a5b1e}
+  .protocol b{color:#6a4e15}
+  button.submit{width:100%;margin-top:18px;padding:15px;border:none;border-radius:12px;background:var(--teal);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+  button.submit:active{background:#188a86}
+  button.submit:disabled{opacity:.6;cursor:default}
+  .status{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:14px;display:none}
+  .status.show{display:block}
+  .status.ok{background:rgba(31,156,152,.12);border:1px solid rgba(31,156,152,.5);color:#12716e}
+  .status.err{background:rgba(224,122,95,.12);border:1px solid rgba(224,122,95,.5);color:#a33f28}
+  .foot{text-align:center;color:var(--muted);font-size:11px;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>White Bay Villas · Social Lead Intake</h1>
+    <p>Log every social lead the moment it comes in — it lands on the dashboard instantly.</p>
+  </header>
+  <form id="f" autocomplete="off">
+    <div class="card">
+      <label class="req">Channel</label>
+      <div class="chips" id="chips">
+        <div class="chip" data-v="Instagram">Instagram</div>
+        <div class="chip" data-v="Facebook Messenger">Facebook</div>
+        <div class="chip" data-v="TikTok">TikTok</div>
+        <div class="chip" data-v="WhatsApp">WhatsApp</div>
+        <div class="chip" data-v="Other">Other</div>
+      </div>
+      <input type="hidden" id="channel" required>
+
+      <label class="req">Prospect name</label>
+      <input id="name" placeholder="First and last name if known" required>
+
+      <label>Handle / username <span class="hint">— so we can find them again</span></label>
+      <input id="handle" placeholder="@username">
+
+      <div class="row">
+        <div>
+          <label>Phone</label>
+          <input id="phone" type="tel" inputmode="tel" placeholder="(555) 123-4567">
+        </div>
+        <div>
+          <label>Party size</label>
+          <input id="party" type="number" inputmode="numeric" min="1" placeholder="e.g. 4">
+        </div>
+      </div>
+
+      <label>Email</label>
+      <input id="email" type="email" inputmode="email" placeholder="name@email.com">
+
+      <label>Desired dates <span class="hint">— check-in → check-out</span></label>
+      <div class="row">
+        <div><input id="from_date" type="date" aria-label="Check-in"></div>
+        <div><input id="to_date" type="date" aria-label="Check-out"></div>
+      </div>
+
+      <label>What are they asking for?</label>
+      <textarea id="notes" placeholder="Which villa / occasion / questions / anything they told you"></textarea>
+
+      <div class="protocol">
+        <b>Before you send:</b> always try to capture <b>the dates</b> and <b>a phone or email</b> while you have them — that is what turns a social DM into a bookable lead.
+      </div>
+
+      <button type="submit" class="submit" id="btn">Log this lead</button>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="foot">Bofill Technologies · lead flows into the White Bay Villas warehouse</div>
+  </form>
+</div>
+<script>
+  var CFG={
+    url:"https://hpobuszmkdibaznmufxc.supabase.co",
+    key:"sb_publishable_cly2dzYEaEPkgS760hz8SA_BBbe_mtG",
+    token:"wbv-social-2026"
+  };
+  var $=function(id){return document.getElementById(id);};
+  $("chips").addEventListener("click",function(e){
+    var c=e.target.closest(".chip"); if(!c) return;
+    [].forEach.call(document.querySelectorAll(".chip"),function(x){x.classList.remove("on");});
+    c.classList.add("on"); $("channel").value=c.dataset.v;
+  });
+  function setStatus(msg,ok){
+    var s=$("status"); s.textContent=msg; s.className="status show "+(ok?"ok":"err");
+  }
+  $("f").addEventListener("submit",async function(e){
+    e.preventDefault();
+    var channel=$("channel").value, name=$("name").value.trim();
+    var phone=$("phone").value.trim(), email=$("email").value.trim(), handle=$("handle").value.trim();
+    if(!channel){ setStatus("Pick a channel first.",false); return; }
+    if(!name){ setStatus("Add the prospect's name.",false); return; }
+    if(!phone && !email && !handle){ setStatus("Add at least one way to reach them — phone, email, or handle.",false); return; }
+    var btn=$("btn"); btn.disabled=true; var old=btn.textContent; btn.textContent="Logging…";
+    try{
+      var body={
+        p_token:CFG.token, p_channel:channel, p_name:name, p_handle:handle,
+        p_phone:phone, p_email:email,
+        p_from_date:$("from_date").value, p_to_date:$("to_date").value,
+        p_party:$("party").value, p_notes:$("notes").value.trim()
+      };
+      var r=await fetch(CFG.url+"/rest/v1/rpc/f_submit_social_lead",{
+        method:"POST",
+        headers:{"apikey":CFG.key,"Authorization":"Bearer "+CFG.key,"Content-Type":"application/json"},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok){ var t=await r.text(); throw new Error(t||("HTTP "+r.status)); }
+      setStatus("✓ Lead logged for "+name+". It's on the dashboard now.",true);
+      $("f").reset();
+      [].forEach.call(document.querySelectorAll(".chip"),function(x){x.classList.remove("on");});
+      $("channel").value="";
+      window.scrollTo({top:0,behavior:"smooth"});
+    }catch(err){
+      setStatus("Couldn't save — "+(err.message||"try again")+". Nothing was lost, just tap Log again.",false);
+    }finally{
+      btn.disabled=false; btn.textContent=old;
+    }
+  });
+</script>
+</body>
+</html>
