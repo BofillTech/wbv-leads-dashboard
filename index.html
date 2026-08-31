@@ -125,6 +125,10 @@
       <h2>High-intent leads</h2><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
+    <div class="card full">
+      <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
+      <div id="nbWrap"></div>
+    </div>
   </div>
   <footer>Live aggregate + lead data via your White Bay Villas login. Raw tables stay locked at the database level. · Bofill Technologies</footer>
 </div>
@@ -212,14 +216,22 @@ function resChart(id,rows){
   if(!rows||!rows.length){doughnut(id,['No data in range'],[1],['#dde6ea']);return;}
   doughnut(id,rows.map(r=>r.category),rows.map(r=>Number(r.cnt)),rows.map(r=>cm[r.category]||C.teal));
 }
+function nbTable(rows){
+  const w=document.getElementById('nbWrap'); const esc=x=>(x||'').replace(/</g,'&lt;');
+  document.getElementById('nbCount').textContent=rows.length+' new-booking inquiries in range (calls + email) · newest first';
+  if(!rows.length){w.innerHTML='<div class="empty">No new-booking inquiries in this range.</div>';return;}
+  w.innerHTML='<table><thead><tr><th>Date</th><th>Channel</th><th>Name</th><th>Phone</th><th>Email</th><th>Detail</th></tr></thead><tbody>'
+   +rows.map(r=>'<tr><td>'+fmtDate(r.occurred_at)+'</td><td>'+esc(r.channel)+'</td><td>'+(esc(r.name)||'—')+'</td><td class="num">'+esc(r.phone)+'</td><td>'+esc(r.email)+'</td><td style="color:var(--muted)">'+esc(r.detail)+'</td></tr>').join('')
+   +'</tbody></table>';
+}
 
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,nbdetail]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
-      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email")
+      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),rpc("f_new_booking_detail")
     ]);
     kpiCards(kpiA[0]||{});
     const fl=funnel.map(r=>cap(r.channel));
@@ -252,6 +264,7 @@ async function loadAll(){
       <td>${fmtDate(l.last_touch)}</td><td style="color:var(--muted)">${(l.last_note||"").replace(/</g,"&lt;")}</td></tr>`).join("")
       +'</tbody></table>';}
     resChart("cResCall",rescall); resChart("cResEmail",resemail);
+    nbTable(nbdetail||[]);
     document.getElementById("updated").textContent="Updated "+new Date().toLocaleString();
   }catch(e){document.getElementById("updated").textContent="Error loading data";console.error(e);}
 }
