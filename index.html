@@ -56,6 +56,11 @@
   th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
   td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
   .note-cell{cursor:pointer}
+  .rstats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+  .rstat{flex:1 1 130px;background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .rstat-v{font-size:20px;font-weight:700;color:var(--ink)}
+  .rstat-l{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-top:2px}
+  .rstat-s{font-size:11px;color:var(--muted);margin-top:2px}
   .note-cell .clamp{max-height:3.4em;overflow:hidden;white-space:pre-wrap;position:relative}
   .note-cell.expanded .clamp{max-height:none}
   .note-cell:not(.expanded) .clamp::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1.2em;background:linear-gradient(transparent,var(--card))}
@@ -132,7 +137,10 @@
     </div>
     <div class="card full">
       <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
-      <div id="nbWrap"></div>
+      <div id="nbWrap"></div></div>
+    <div class="card full">
+      <h2>Reservations — pipeline &amp; activity</h2><p class="hint">Cloudbeds holds, confirmations, releases, date moves, provisions &amp; payments collected · activity accrues daily</p>
+      <div id="resvWrap"></div>
     </div>
   </div>
   <footer>Live aggregate + lead data via your White Bay Villas login. Raw tables stay locked at the database level. · Bofill Technologies</footer>
@@ -230,6 +238,20 @@ function nbTable(rows){
    +'</tbody></table>';
 }
 
+function renderResv(pipeline,ancillary,bactivity){
+  var byS={}; (pipeline||[]).forEach(function(r){byS[r.status]=r;});
+  function pv(s){var r=byS[s]||{cnt:0,value:0}; return {c:r.cnt||0,v:Math.round(r.value||0)};}
+  var conf=pv("confirmed"),pend=pv("pending"),canc=pv("cancelled");
+  var a=(ancillary&&ancillary[0])||{};
+  var money=function(n){return "$"+(Math.round(n||0)).toLocaleString();};
+  var stat=function(l,v,sub){return '<div class="rstat"><div class="rstat-v">'+v+'</div><div class="rstat-l">'+l+'</div>'+(sub?'<div class="rstat-s">'+sub+'</div>':'')+'</div>';};
+  var head='<div class="rstats">'+stat("Confirmed",conf.c,money(conf.v))+stat("Pending holds",pend.c,money(pend.v))+stat("Cancelled",canc.c,"")+stat("Extra charges",money(a.extra_charges),(a.extra_count||0)+" provisions/fees")+stat("Payments collected",money(a.payments),(a.payment_count||0)+" payments")+stat("Holds released",(a.holds_released||0),"lost holds")+'</div>';
+  var rows=(bactivity||[]); var tbl;
+  if(!rows.length){ tbl='<div class="empty">No reservation activity in this range yet \u2014 it accrues as Cloudbeds syncs each day.</div>'; }
+  else { tbl='<table><thead><tr><th>Date</th><th>Guest</th><th>Activity</th><th>Amount</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+fmtDate(r.occurred_at)+'</td><td>'+(esc(r.guest_name)||"\u2014")+'</td><td>'+esc(r.detail||r.activity_type)+'</td><td class="num">'+(r.amount!=null?money(r.amount):"")+'</td></tr>';}).join("")+'</tbody></table>'; }
+  var el=document.getElementById("resvWrap"); if(el) el.innerHTML=head+tbl;
+}
+
 async function nbFetchAll(){
   let s=session(), out=[], off=0;
   for(let i=0;i<40;i++){
@@ -244,11 +266,13 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
-      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email")
+      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity")
     ]);
     kpiCards(kpiA[0]||{});
+    renderResv(pipeline,ancillary,bactivity);
     const fl=funnel.map(r=>cap(r.channel));
     bar("cInq",fl,[{label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:6}]);
     bar("cFunnel",fl,[
