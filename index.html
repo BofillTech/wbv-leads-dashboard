@@ -140,7 +140,10 @@
       <div id="nbWrap"></div></div>
     <div class="card full">
       <h2>Reservations — pipeline &amp; activity</h2><p class="hint">Cloudbeds holds, confirmations, releases, date moves, provisions &amp; payments collected · activity accrues daily</p>
-      <div id="resvWrap"></div>
+      <div id="resvWrap"></div></div>
+    <div class="card full">
+      <h2>Estimated staff activity time</h2><p class="hint">Rough time from tracked calls, texts &amp; emails only — <b>not</b> total hours worked. Amy’s 305 calls &amp; Cloudbeds work, and 1‑800 inbound calls, aren’t attributed yet, so real hours are higher.</p>
+      <div id="hoursWrap"></div>
     </div>
   </div>
   <footer>Live aggregate + lead data via your White Bay Villas login. Raw tables stay locked at the database level. · Bofill Technologies</footer>
@@ -238,6 +241,20 @@ function nbTable(rows){
    +'</tbody></table>';
 }
 
+function renderHours(rows){
+  rows=rows||[]; var agg={};
+  rows.forEach(function(r){var a=r.agent; if(!agg[a])agg[a]={h:0,calls:0,conn:0,talk:0,texts:0,emails:0,days:{}}; var g=agg[a]; g.h+=(+r.est_hours||0); g.calls+=(+r.calls||0); g.conn+=(+r.connected||0); g.talk+=(+r.talk_min||0); g.texts+=(+r.texts||0); g.emails+=(+r.emails||0); if((+r.est_hours||0)>0)g.days[r.day]=1;});
+  function tile(name){ var g=agg[name]||{h:0,calls:0,conn:0,talk:0,texts:0,emails:0,days:{}}; var d=Object.keys(g.days).length; var avg=d?(g.h/d):0;
+    return '<div class="rstat"><div class="rstat-v">'+g.h.toFixed(1)+'h</div><div class="rstat-l">'+name+' tracked time</div><div class="rstat-s">'+avg.toFixed(1)+'h/active day · '+d+' days</div></div>'
+      +'<div class="rstat"><div class="rstat-v">'+Math.round(g.talk)+'m</div><div class="rstat-l">'+name+' talk time</div><div class="rstat-s">'+g.conn+' connected / '+g.calls+' calls</div></div>'
+      +'<div class="rstat"><div class="rstat-v">'+g.texts+' / '+g.emails+'</div><div class="rstat-l">'+name+' texts / emails</div><div class="rstat-s"></div></div>'; }
+  var head='<div class="rstats">'+tile("Amy")+'</div><div class="rstats">'+tile("Rachel")+'</div>';
+  var days={}; rows.forEach(function(r){ if(r.agent==="Amy"||r.agent==="Rachel"){ days[r.day]=days[r.day]||{}; days[r.day][r.agent]=+r.est_hours||0; }});
+  var dk=Object.keys(days).sort().reverse().slice(0,21); var tbl="";
+  if(dk.length){ tbl='<table><thead><tr><th>Date</th><th>Amy (est h)</th><th>Rachel (est h)</th></tr></thead><tbody>'+dk.map(function(d){var x=days[d]; return '<tr><td>'+d+'</td><td class="num">'+((x.Amy||0).toFixed(1))+'</td><td class="num">'+((x.Rachel||0).toFixed(1))+'</td></tr>';}).join("")+'</tbody></table>'; }
+  var el=document.getElementById("hoursWrap"); if(el) el.innerHTML=head+tbl;
+}
+
 function renderResv(pipeline,ancillary,bactivity){
   var byS={}; (pipeline||[]).forEach(function(r){byS[r.status]=r;});
   function pv(s){var r=byS[s]||{cnt:0,value:0}; return {c:r.cnt||0,v:Math.round(r.value||0)};}
@@ -266,13 +283,14 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours")
     ]);
     kpiCards(kpiA[0]||{});
     renderResv(pipeline,ancillary,bactivity);
+    renderHours(ahours);
     const fl=funnel.map(r=>cap(r.channel));
     bar("cInq",fl,[{label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:6}]);
     bar("cFunnel",fl,[
