@@ -144,6 +144,8 @@
     <div class="card full">
       <h2>Estimated staff activity time</h2><p class="hint">Rough time from tracked calls, texts &amp; emails only — <b>not</b> total hours worked. Amy’s 305 calls &amp; Cloudbeds work, and 1‑800 inbound calls, aren’t attributed yet, so real hours are higher.</p>
       <div id="hoursWrap"></div>
+      <h2 style="font-size:14px;margin:20px 0 4px">Sales vs logistics</h2><p class="hint">How tracked time splits between selling and existing-guest logistics. Logistics is temporarily inflated by one-time credit-card collection on old-system imports — expect it to shrink as the migration clears.</p>
+      <div id="splitWrap"></div>
     </div>
   </div>
   <footer>Live aggregate + lead data via your White Bay Villas login. Raw tables stay locked at the database level. · Bofill Technologies</footer>
@@ -241,6 +243,23 @@ function nbTable(rows){
    +'</tbody></table>';
 }
 
+function renderSplit(rows){
+  rows=(rows||[]).filter(function(r){return r.agent==="Amy"||r.agent==="Rachel";});
+  var el=document.getElementById("splitWrap"); if(!el) return;
+  if(!rows.length){ el.innerHTML='<div class="empty">No activity in this range.</div>'; return; }
+  var hh=function(n){return (Math.round((+n||0)*10)/10)+"h";};
+  var html=rows.map(function(r){
+    var s=+r.sales_hours||0, l=+r.logistics_hours||0, tot=s+l, sp=tot?Math.round(100*s/tot):0;
+    return '<div style="margin:10px 0">'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><b>'+r.agent+'</b><span style="color:var(--muted)">'+sp+'% sales · '+hh(s)+' sales / '+hh(l)+' logistics</span></div>'
+      +'<div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)">'
+      +'<div title="Sales" style="width:'+sp+'%;background:var(--teal)"></div>'
+      +'<div title="Logistics" style="width:'+(100-sp)+'%;background:var(--sand)"></div></div></div>';
+  }).join("");
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:6px"><span style="display:inline-block;width:9px;height:9px;background:var(--teal);border-radius:2px"></span> Sales &nbsp; <span style="display:inline-block;width:9px;height:9px;background:var(--sand);border-radius:2px"></span> Logistics / existing-guest</div>';
+  el.innerHTML=html;
+}
+
 function renderHours(rows){
   rows=rows||[]; var agg={};
   rows.forEach(function(r){var a=r.agent; if(!agg[a])agg[a]={h:0,calls:0,conn:0,talk:0,texts:0,emails:0,days:{}}; var g=agg[a]; g.h+=(+r.est_hours||0); g.calls+=(+r.calls||0); g.conn+=(+r.connected||0); g.talk+=(+r.talk_min||0); g.texts+=(+r.texts||0); g.emails+=(+r.emails||0); if((+r.est_hours||0)>0)g.days[r.day]=1;});
@@ -283,14 +302,15 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split")
     ]);
     kpiCards(kpiA[0]||{});
     renderResv(pipeline,ancillary,bactivity);
     renderHours(ahours);
+    renderSplit(tsplit);
     const fl=funnel.map(r=>cap(r.channel));
     bar("cInq",fl,[{label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:6}]);
     bar("cFunnel",fl,[
