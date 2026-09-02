@@ -56,6 +56,21 @@
   th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
   td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
   .note-cell{cursor:pointer;max-width:540px}
+  .dmodal{position:fixed;inset:0;background:rgba(15,34,48,.45);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .dmodal.show{display:flex}
+  .dmodal-box{background:#fff;border-radius:14px;max-width:920px;width:100%;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+  .dmodal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .dmodal-x{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;color:var(--muted);font-size:13px}
+  .dmodal-ctrl{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+  .dmodal-ctrl input{padding:7px 10px;border:1px solid #d3dde2;border-radius:8px;font-size:14px}
+  .dbtn{padding:7px 14px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:600;cursor:pointer}
+  .dstat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .dstat{background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:8px 16px;text-align:center}
+  .dstat b{font-size:20px;display:block;color:var(--ink)}
+  .dstat span{font-size:11px;text-transform:uppercase;color:var(--muted)}
+  .dtable{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .dtable th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .dtable td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
   #leadsWrap{overflow-x:auto}
   .lead-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .leadfilter{display:flex;flex-wrap:wrap;gap:5px}
@@ -111,9 +126,10 @@
       </span>
     </div>
     <div class="right"><span id="updated">Loading…</span>
-      <button onclick="loadAll()">Refresh</button>
+      <button onclick="openDaily()">Daily summary</button><button onclick="loadAll()">Refresh</button>
       <button class="ghost" onclick="signOut()">Sign out</button></div>
   </header>
+  <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily lead summary</h2><button class="dmodal-x" onclick="closeDaily()">Close</button></div><div class="dmodal-ctrl"><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a day.</div></div></div></div>
   <div class="wrap">
     <div class="rangeLbl" id="rangeLbl"></div>
     <div class="kpis" id="kpis"></div>
@@ -372,6 +388,10 @@ document.getElementById("applyCustom").addEventListener("click",()=>{ if(customR
 document.addEventListener('click',e=>{const c=e.target.closest('.note-cell');if(c)c.classList.toggle('expanded');});
     function updateLeadFilterCounts(){var rows=[].slice.call(document.querySelectorAll('#leadsTbl tbody tr'));[].forEach.call(document.querySelectorAll('#leadFilter .lf'),function(b){var f=b.getAttribute('data-f')||'';var n=f?rows.filter(function(tr){return (tr.getAttribute('data-cat')||'').indexOf(f)>-1;}).length:rows.length;var sp=b.querySelector('.lf-n');if(sp)sp.textContent=n;});}
     document.addEventListener('click',function(e){var b=e.target.closest('.lf');if(!b)return;var ff=b.parentNode;[].forEach.call(ff.querySelectorAll('.lf'),function(x){x.classList.remove('on');});b.classList.add('on');var f=b.getAttribute('data-f')||'';[].forEach.call(document.querySelectorAll('#leadsTbl tbody tr'),function(tr){var c=(tr.getAttribute('data-cat')||'');tr.style.display=(!f||c.indexOf(f)>-1)?'':'none';});});
+function openDaily(){var m=document.getElementById('dailyModal');var di=document.getElementById('dailyDate');if(!di.value){var y=new Date(Date.now()-864e5);di.value=y.toISOString().slice(0,10);}m.classList.add('show');runDaily();}
+function closeDaily(){document.getElementById('dailyModal').classList.remove('show');}
+async function runDaily(){var d=document.getElementById('dailyDate').value;if(!d)return;var body=document.getElementById('dailyBody');body.innerHTML='<div class="hint">Loading...</div>';try{var s=session();var r=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_leads',{method:'POST',headers:{apikey:PUBLISHABLE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_day:d})});var rows=await r.json();body.innerHTML=renderDaily(d,rows);}catch(e){body.innerHTML='<div class="hint">Could not load summary.</div>';}}
+function renderDaily(d,rows){rows=rows||[];if(!Array.isArray(rows))rows=[];var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};var hot=rows.filter(function(r){return r.intent==='hot';}).length;var warm=rows.filter(function(r){return r.intent==='warm';}).length;var inq=rows.filter(function(r){return r.is_inquiry;}).length;var ch={};rows.forEach(function(r){var c=r.channel||'other';ch[c]=(ch[c]||0)+1;});var chStr=Object.keys(ch).map(function(c){return c+' '+ch[c];}).join('  '+String.fromCharCode(183)+'  ')||'none';var head='<div class="dstat-row"><div class="dstat"><b>'+rows.length+'</b><span>leads</span></div><div class="dstat"><b>'+hot+'</b><span>hot</span></div><div class="dstat"><b>'+warm+'</b><span>warm</span></div><div class="dstat"><b>'+inq+'</b><span>inquiries</span></div></div><div class="hint" style="margin:2px 0 8px">By channel: '+chStr+'</div>';if(!rows.length)return '<div class="hint">No leads on '+esc(d)+'.</div>';var list='<table class="dtable"><thead><tr><th>Name</th><th>Intent</th><th>Channel</th><th>Contact</th><th>Dates</th><th>Note</th></tr></thead><tbody>'+rows.map(function(r){var src=(r.source&&['grace','instagram','facebook messenger','tiktok','whatsapp','signalwire'].indexOf((r.source||'').toLowerCase())>-1)?' ('+esc(r.source)+')':'';return '<tr><td><b>'+esc(r.name)+'</b></td><td><span class="badge '+(r.intent||'')+'">'+esc(r.intent||'')+'</span></td><td>'+esc(r.channel||'')+src+'</td><td>'+esc(r.phone||r.email||'')+'</td><td>'+esc(r.dates||'')+'</td><td style="max-width:320px;overflow-wrap:anywhere;word-break:break-word">'+esc((r.note||'').slice(0,150))+'</td></tr>';}).join('')+'</tbody></table>';return head+list;}
 function showApp(){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";loadAll();}
 document.getElementById("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();const b=document.getElementById("loginBtn"),er=document.getElementById("loginErr");
