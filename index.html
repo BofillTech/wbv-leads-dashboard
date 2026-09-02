@@ -56,6 +56,10 @@
   th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
   td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
   .note-cell{cursor:pointer}
+  .lead-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .leadfilter{display:flex;flex-wrap:wrap;gap:5px}
+  .leadfilter .lf{font-size:11px;padding:4px 10px;border:1px solid var(--line);background:#fff;border-radius:20px;cursor:pointer;color:var(--muted)}
+  .leadfilter .lf.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .rstats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
   .rstat{flex:1 1 130px;background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
   .rstat-v{font-size:20px;font-weight:700;color:var(--ink)}
@@ -132,7 +136,7 @@
     </div>
 
     <div class="card full">
-      <h2>High-intent leads</h2><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
+      <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="leadFilter"><button class="lf on" data-f="">All</button><button class="lf" data-f="phone">Phone</button><button class="lf" data-f="email">Email</button><button class="lf" data-f="form">Website form</button><button class="lf" data-f="social">Social</button><button class="lf" data-f="text">Text</button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full">
@@ -335,7 +339,7 @@ async function loadAll(){
     const wrap=document.getElementById("leadsWrap");
     if(!leads.length){wrap.innerHTML='<div class="empty">No hot/warm leads in this range.</div>';}
     else{wrap.innerHTML='<table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody>'
-      +leads.map(l=>`<tr><td><b>${l.name||"—"}</b></td>
+      +leads.map(l=>`<tr data-cat="${((l.channels||'')+(/form submission/i.test(l.last_note||'')?' form':'')).toLowerCase()}"><td><b>${l.name||"—"}</b></td>
       <td><span class="badge ${l.top_intent}">${l.top_intent}</span></td>
       <td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
       <td>${fmtDate(l.last_touch)}</td><td class="note-cell" title="Click to expand/collapse" style="color:var(--muted)"><div class="clamp">${(l.last_note||"").replace(/</g,"&lt;")}</div></td></tr>`).join("")
@@ -363,6 +367,7 @@ document.getElementById("seg").addEventListener("click",e=>{
 document.getElementById("applyCustom").addEventListener("click",()=>{ if(customRange()){ [...document.querySelectorAll("#seg button")].forEach(b=>b.classList.remove("active")); const cb=document.querySelector('#seg button[data-range="custom"]'); if(cb) cb.classList.add("active"); loadAll(); } });
 
 document.addEventListener('click',e=>{const c=e.target.closest('.note-cell');if(c)c.classList.toggle('expanded');});
+    document.addEventListener('click',function(e){var b=e.target.closest('.lf');if(!b)return;var ff=b.parentNode;[].forEach.call(ff.querySelectorAll('.lf'),function(x){x.classList.remove('on');});b.classList.add('on');var f=b.getAttribute('data-f')||'';[].forEach.call(document.querySelectorAll('#leadsTbl tbody tr'),function(tr){var c=(tr.getAttribute('data-cat')||'');tr.style.display=(!f||c.indexOf(f)>-1)?'':'none';});});
 function showApp(){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";loadAll();}
 document.getElementById("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();const b=document.getElementById("loginBtn"),er=document.getElementById("loginErr");
