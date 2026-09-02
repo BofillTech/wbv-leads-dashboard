@@ -55,17 +55,20 @@
   table{width:100%;border-collapse:collapse;font-size:13px}
   th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
   td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-  .note-cell{cursor:pointer}
+  .note-cell{cursor:pointer;max-width:540px}
+  #leadsWrap{overflow-x:auto}
   .lead-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .leadfilter{display:flex;flex-wrap:wrap;gap:5px}
-  .leadfilter .lf{font-size:11px;padding:4px 10px;border:1px solid var(--line);background:#fff;border-radius:20px;cursor:pointer;color:var(--muted)}
+  .leadfilter .lf{display:flex;flex-direction:column;align-items:center;line-height:1.2;min-width:48px;font-size:11px;padding:4px 9px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;color:var(--muted)}
+  .leadfilter .lf .lf-n{font-size:12px;font-weight:700;color:var(--ink)}
+  .leadfilter .lf.on .lf-n{color:#fff}
   .leadfilter .lf.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .rstats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
   .rstat{flex:1 1 130px;background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
   .rstat-v{font-size:20px;font-weight:700;color:var(--ink)}
   .rstat-l{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-top:2px}
   .rstat-s{font-size:11px;color:var(--muted);margin-top:2px}
-  .note-cell .clamp{max-height:3.4em;overflow:hidden;white-space:pre-wrap;position:relative}
+  .note-cell .clamp{max-height:3.4em;overflow:hidden;white-space:pre-wrap;position:relative;max-width:520px;overflow-wrap:anywhere;word-break:break-word}
   .note-cell.expanded .clamp{max-height:none}
   .note-cell:not(.expanded) .clamp::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1.2em;background:linear-gradient(transparent,var(--card))}
   .note-cell:hover{color:var(--ink)!important}
@@ -136,7 +139,7 @@
     </div>
 
     <div class="card full">
-      <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="leadFilter"><button class="lf on" data-f="">All</button><button class="lf" data-f="phone">Phone</button><button class="lf" data-f="email">Email</button><button class="lf" data-f="form">Website form</button><button class="lf" data-f="social">Social</button><button class="lf" data-f="text">Text</button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
+      <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="leadFilter"><button class="lf on" data-f=""><span>All</span><b class="lf-n"></b></button><button class="lf" data-f="phone"><span>Phone</span><b class="lf-n"></b></button><button class="lf" data-f="email"><span>Email</span><b class="lf-n"></b></button><button class="lf" data-f="form"><span>Website form</span><b class="lf-n"></b></button><button class="lf" data-f="social"><span>Social</span><b class="lf-n"></b></button><button class="lf" data-f="text"><span>Text</span><b class="lf-n"></b></button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full">
@@ -343,7 +346,7 @@ async function loadAll(){
       <td><span class="badge ${l.top_intent}">${l.top_intent}</span></td>
       <td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
       <td>${fmtDate(l.last_touch)}</td><td class="note-cell" title="Click to expand/collapse" style="color:var(--muted)"><div class="clamp">${(l.last_note||"").replace(/</g,"&lt;")}</div></td></tr>`).join("")
-      +'</tbody></table>';}
+      +'</tbody></table>';} try{updateLeadFilterCounts();}catch(_){}
     resChart("cResCall",rescall); resChart("cResEmail",resemail);
     nbTable(await nbFetchAll());
     document.getElementById("updated").textContent="Updated "+new Date().toLocaleString();
@@ -367,6 +370,7 @@ document.getElementById("seg").addEventListener("click",e=>{
 document.getElementById("applyCustom").addEventListener("click",()=>{ if(customRange()){ [...document.querySelectorAll("#seg button")].forEach(b=>b.classList.remove("active")); const cb=document.querySelector('#seg button[data-range="custom"]'); if(cb) cb.classList.add("active"); loadAll(); } });
 
 document.addEventListener('click',e=>{const c=e.target.closest('.note-cell');if(c)c.classList.toggle('expanded');});
+    function updateLeadFilterCounts(){var rows=[].slice.call(document.querySelectorAll('#leadsTbl tbody tr'));[].forEach.call(document.querySelectorAll('#leadFilter .lf'),function(b){var f=b.getAttribute('data-f')||'';var n=f?rows.filter(function(tr){return (tr.getAttribute('data-cat')||'').indexOf(f)>-1;}).length:rows.length;var sp=b.querySelector('.lf-n');if(sp)sp.textContent=n;});}
     document.addEventListener('click',function(e){var b=e.target.closest('.lf');if(!b)return;var ff=b.parentNode;[].forEach.call(ff.querySelectorAll('.lf'),function(x){x.classList.remove('on');});b.classList.add('on');var f=b.getAttribute('data-f')||'';[].forEach.call(document.querySelectorAll('#leadsTbl tbody tr'),function(tr){var c=(tr.getAttribute('data-cat')||'');tr.style.display=(!f||c.indexOf(f)>-1)?'':'none';});});
 function showApp(){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";loadAll();}
 document.getElementById("loginForm").addEventListener("submit",async e=>{
