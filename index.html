@@ -274,7 +274,7 @@ function renderHours(rows){
   var el=document.getElementById("hoursWrap"); if(el) el.innerHTML=head+tbl;
 }
 
-function renderResv(pipeline,ancillary,bactivity){
+function renderResv(pipeline,ancillary,bactivity){function esc(x){return String(x==null?"":x).replace(/[<>&]/g,function(c){return c==="<"?"&lt;":(c===">"?"&gt;":"&amp;");});}
   var byS={}; (pipeline||[]).forEach(function(r){byS[r.status]=r;});
   function pv(s){var r=byS[s]||{cnt:0,value:0}; return {c:r.cnt||0,v:Math.round(r.value||0)};}
   var conf=pv("confirmed"),pend=pv("pending"),canc=pv("cancelled");
