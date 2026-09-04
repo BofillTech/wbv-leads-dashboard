@@ -297,14 +297,14 @@ function renderHours(rows){
   var el=document.getElementById("hoursWrap"); if(el) el.innerHTML=head+tbl;
 }
 
-function renderResv(pipeline,ancillary,bactivity){function esc(x){return String(x==null?"":x).replace(/[<>&]/g,function(c){return c==="<"?"&lt;":(c===">"?"&gt;":"&amp;");});}
+function renderResv(pipeline,ancillary,bactivity,paysum){function esc(x){return String(x==null?"":x).replace(/[<>&]/g,function(c){return c==="<"?"&lt;":(c===">"?"&gt;":"&amp;");});}
   var byS={}; (pipeline||[]).forEach(function(r){byS[r.status]=r;});
   function pv(s){var r=byS[s]||{cnt:0,value:0}; return {c:r.cnt||0,v:Math.round(r.value||0)};}
   var conf=pv("confirmed"),pend=pv("pending"),canc=pv("cancelled");
-  var a=(ancillary&&ancillary[0])||{};
+  var a=(ancillary&&ancillary[0])||{};var ps=(paysum&&paysum[0])||{};
   var money=function(n){return "$"+(Math.round(n||0)).toLocaleString();};
   var stat=function(l,v,sub){return '<div class="rstat"><div class="rstat-v">'+v+'</div><div class="rstat-l">'+l+'</div>'+(sub?'<div class="rstat-s">'+sub+'</div>':'')+'</div>';};
-  var head='<div class="rstats">'+stat("Confirmed",conf.c,money(conf.v))+stat("Pending holds",pend.c,money(pend.v))+stat("Cancelled",canc.c,"")+stat("Extra charges",money(a.extra_charges),(a.extra_count||0)+" provisions/fees")+stat("Payments collected",money(a.payments),(a.payment_count||0)+" payments")+stat("Holds released",(a.holds_released||0),"lost holds")+'</div>';
+  var head='<div class="rstats">'+stat("Confirmed",conf.c,money(conf.v))+stat("Pending holds",pend.c,money(pend.v))+stat("Cancelled",canc.c,"")+stat("Extra charges",money(ps.extra_charges),"fees + products")+stat("Payments collected",money(ps.payments_collected),(ps.payments_count||0)+" payments")+stat("Holds released",(a.holds_released||0),"lost holds")+'</div>';
   var rows=(bactivity||[]); var tbl;
   if(!rows.length){ tbl='<div class="empty">No reservation activity in this range yet \u2014 it accrues as Cloudbeds syncs each day.</div>'; }
   else { tbl='<table><thead><tr><th>Date</th><th>Guest</th><th>Activity</th><th>Amount</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+fmtDate(r.occurred_at)+'</td><td>'+(esc(r.guest_name)||"\u2014")+'</td><td>'+esc(r.detail||r.activity_type)+'</td><td class="num">'+(r.amount!=null?money(r.amount):"")+'</td></tr>';}).join("")+'</tbody></table>'; }
@@ -325,13 +325,13 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary")
     ]);
     kpiCards(kpiA[0]||{});
-    renderResv(pipeline,ancillary,bactivity);
+    renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
     const fl=funnel.map(r=>cap(r.channel));
