@@ -237,7 +237,7 @@ const money=n=>"$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigit
 const fmtDate=d=>d?new Date(d).toLocaleDateString():"";
 
 function kpiCards(k){
-  const cards=[["Inquiries",(k.total_inquiries||0)],["Hot leads",(k.hot_leads||0)],["Cold calls",(k.cold_calls||0)],
+  const cards=[["Inquiries",(k.total_inquiries||0)],["Hot leads",(k.hot_leads||0)],["Calls connected",(k.cold_calls||0)],
     ["Inbound 1-800",(k.inbound_1800||0)],["Emails",(k.emails||0)],["Booking value",money(k.booked_value)]];
   document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi"><div class="v">${c[1].toLocaleString?c[1].toLocaleString():c[1]}</div><div class="l">${c[0]}</div></div>`).join("");
 }
