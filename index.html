@@ -140,7 +140,7 @@
     </div>
 
     <div class="grid">
-      <div class="card"><h2>Cold calls — Hazel vs Rachel</h2><p class="hint">QUO outbound · calls / connected / voicemail</p><canvas id="cAgents"></canvas></div>
+      <div class="card"><h2>Calls & texts — Hazel vs Rachel</h2><p class="hint">QUO outbound · calls / connected / voicemail</p><canvas id="cAgents"></canvas></div>
       <div class="card"><h2>Email intent</h2><p class="hint">info@ inbox · heuristic scoring (AI job refines)</p><canvas id="cEmail"></canvas></div>
     </div>
 
@@ -237,7 +237,7 @@ const money=n=>"$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigit
 const fmtDate=d=>d?new Date(d).toLocaleDateString():"";
 
 function kpiCards(k){
-  const cards=[["Inquiries",(k.total_inquiries||0)],["Hot leads",(k.hot_leads||0)],["Calls connected",(k.cold_calls||0)],
+  const cards=[["Inquiries",(k.total_inquiries||0)],["Hot leads",(k.hot_leads||0)],["Calls connected",(k.cold_calls||0)],["Texts sent",(k.texts_sent||0)],
     ["Inbound 1-800",(k.inbound_1800||0)],["Emails",(k.emails||0)],["Booking value",money(k.booked_value)]];
   document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi"><div class="v">${c[1].toLocaleString?c[1].toLocaleString():c[1]}</div><div class="l">${c[0]}</div></div>`).join("");
 }
@@ -344,7 +344,7 @@ async function loadAll(){
     bar("cAgents",al,[
       {label:"Calls",data:agents.map(r=>r.calls),backgroundColor:C.teal,borderRadius:5},
       {label:"Connected",data:agents.map(r=>r.connected),backgroundColor:C.teal2,borderRadius:5},
-      {label:"Voicemail",data:agents.map(r=>r.voicemail),backgroundColor:C.sand,borderRadius:5}]);
+      {label:"Voicemail",data:agents.map(r=>r.voicemail),backgroundColor:C.sand,borderRadius:5},{label:"Texts",data:agents.map(r=>r.texts||0),backgroundColor:C.coral,borderRadius:5}]);
     const eo={hot:C.coral,warm:C.sand,cold:C.muted,operational:"#c3d0d6",unscored:"#dde6ea"};
     if(!email.length){doughnut("cEmail",["No email in range"],[1],["#dde6ea"]);}
     else{doughnut("cEmail",email.map(r=>cap(r.intent)),email.map(r=>r.cnt),email.map(r=>eo[r.intent]||C.teal));}
