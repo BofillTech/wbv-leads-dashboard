@@ -74,6 +74,14 @@
   #leadsWrap{overflow-x:auto}
   .lead-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .leadfilter{display:flex;flex-wrap:wrap;gap:5px}
+  .leadfilter .tf{display:flex;flex-direction:column;align-items:center;line-height:1.2;min-width:56px;font-size:11px;padding:4px 9px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;color:var(--muted)}
+  .leadfilter .tf .tf-n{font-size:12px;font-weight:700;color:var(--ink)}
+  .leadfilter .tf.on{background:var(--teal);color:#fff}
+  .leadfilter .tf.on .tf-n{color:#fff}
+  .tbadge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+  .t-new{background:rgba(31,156,152,.15);color:#12716e}
+  .t-exl{background:rgba(224,182,103,.2);color:#7a5b1e}
+  .t-cust{background:rgba(224,122,95,.18);color:#a33f28}
   .leadfilter .lf{display:flex;flex-direction:column;align-items:center;line-height:1.2;min-width:48px;font-size:11px;padding:4px 9px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;color:var(--muted)}
   .leadfilter .lf .lf-n{font-size:12px;font-weight:700;color:var(--ink)}
   .leadfilter .lf.on .lf-n{color:#fff}
@@ -152,6 +160,11 @@
     <div class="grid">
       <div class="card"><h2>Calls — new vs existing</h2><p class="hint">What the phone activity is about (QUO calls)</p><canvas id="cResCall"></canvas></div>
       <div class="card"><h2>Emails — new vs existing</h2><p class="hint">info@ inbox · automated &amp; noise shown separately</p><canvas id="cResEmail"></canvas></div>
+    </div>
+
+    <div class="card full" id="tiersCard">
+      <div class="lead-head"><div><h2 style="margin:0">Leads by type</h2><p class="hint" style="margin:2px 0 0">New vs returning — for the selected dates</p></div><div class="leadfilter" id="tierFilter"><button class="tf on" data-t=""><span>All</span><b class="tf-n"></b></button><button class="tf" data-t="new_lead"><span>New lead</span><b class="tf-n"></b></button><button class="tf" data-t="existing_lead"><span>Existing lead</span><b class="tf-n"></b></button><button class="tf" data-t="existing_customer"><span>Existing customer</span><b class="tf-n"></b></button></div></div>
+      <div id="tiersWrap"></div>
     </div>
 
     <div class="card full">
@@ -297,6 +310,8 @@ function renderHours(rows){
   var el=document.getElementById("hoursWrap"); if(el) el.innerHTML=head+tbl;
 }
 
+function renderTiers(rows){rows=rows||[];var tw=document.getElementById('tiersWrap');if(!tw)return;function esc(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});}var L={new_lead:'New lead',existing_lead:'Existing lead',existing_customer:'Existing customer'};var K={new_lead:'t-new',existing_lead:'t-exl',existing_customer:'t-cust'};var cnt={'':rows.length,new_lead:0,existing_lead:0,existing_customer:0};rows.forEach(function(r){cnt[r.tier]=(cnt[r.tier]||0)+1;});[].forEach.call(document.querySelectorAll('#tierFilter .tf'),function(b){var f=b.getAttribute('data-t');var n=b.querySelector('.tf-n');if(n)n.textContent=cnt[f]||0;});if(!rows.length){tw.innerHTML='<div class="empty">No leads in this range.</div>';return;}var body=rows.map(function(r){var lt=r.last_touch?new Date(r.last_touch).toLocaleDateString():'';var contact=esc(r.phone||r.email||'');var note=r.tier==='existing_customer'?('Booked/stayed: '+esc(r.matched_stay||'')):((r.prior_contacts>0)?(r.prior_contacts+' prior contact'+(r.prior_contacts>1?'s':'')):'First-ever contact');return '<tr data-t="'+r.tier+'"><td>'+esc(r.name||'—')+'</td><td><span class="tbadge '+(K[r.tier]||'')+'">'+(L[r.tier]||r.tier)+'</span></td><td>'+esc(r.channels||'')+'</td><td>'+contact+'</td><td>'+lt+'</td><td>'+note+'</td></tr>';}).join('');tw.innerHTML='<table><thead><tr><th>Name</th><th>Type</th><th>Channels</th><th>Contact</th><th>Last touch</th><th>History</th></tr></thead><tbody>'+body+'</tbody></table>';}
+document.addEventListener('click',function(e){var b=e.target.closest?e.target.closest('#tierFilter .tf'):null;if(!b)return;[].forEach.call(document.querySelectorAll('#tierFilter .tf'),function(x){x.classList.remove('on');});b.classList.add('on');var f=b.getAttribute('data-t');[].forEach.call(document.querySelectorAll('#tiersWrap tbody tr'),function(tr){tr.style.display=(!f||tr.getAttribute('data-t')===f)?'':'none';});});
 function renderResv(pipeline,ancillary,bactivity,paysum){function esc(x){return String(x==null?"":x).replace(/[<>&]/g,function(c){return c==="<"?"&lt;":(c===">"?"&gt;":"&amp;");});}
   var byS={}; (pipeline||[]).forEach(function(r){byS[r.status]=r;});
   function pv(s){var r=byS[s]||{cnt:0,value:0}; return {c:r.cnt||0,v:Math.round(r.value||0)};}
@@ -325,15 +340,16 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers")
     ]);
     kpiCards(kpiA[0]||{});
     renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
+    renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
     bar("cInq",fl,[{label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:6}]);
     bar("cFunnel",fl,[
