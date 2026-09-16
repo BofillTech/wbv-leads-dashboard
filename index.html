@@ -169,7 +169,7 @@
 
     <div class="card full">
       <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="leadFilter"><button class="lf on" data-f=""><span>All</span><b class="lf-n"></b></button><button class="lf" data-f="phone"><span>Phone</span><b class="lf-n"></b></button><button class="lf" data-f="email"><span>Email</span><b class="lf-n"></b></button><button class="lf" data-f="form"><span>Website form</span><b class="lf-n"></b></button><button class="lf" data-f="social"><span>Social</span><b class="lf-n"></b></button><button class="lf" data-f="text"><span>Text</span><b class="lf-n"></b></button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
-      <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
+      <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full">
       <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
@@ -373,10 +373,10 @@ async function loadAll(){
       {label:"Pending",data:bsource.map(r=>r.pending),backgroundColor:C.sand,borderRadius:5}]);}
     const wrap=document.getElementById("leadsWrap");
     if(!leads.length){wrap.innerHTML='<div class="empty">No hot/warm leads in this range.</div>';}
-    else{wrap.innerHTML='<table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody>'
+    else{wrap.innerHTML='<table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody>'
       +leads.map(l=>`<tr data-cat="${((l.channels||'')+(/form submission/i.test(l.last_note||'')?' form':'')).toLowerCase()}"><td><b>${l.name||"—"}</b></td>
       <td><span class="badge ${l.top_intent}">${l.top_intent}</span></td>
-      <td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
+      <td><span class="tbadge ${({new_lead:'t-new',existing_lead:'t-exl',existing_customer:'t-cust'})[l.tier]||''}">${({new_lead:'New',existing_lead:'Existing lead',existing_customer:'Customer'})[l.tier]||(l.tier||'—')}</span></td><td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
       <td>${fmtDate(l.last_touch)}</td><td class="note-cell" title="Click to expand/collapse" style="color:var(--muted)"><div class="clamp">${(l.last_note||"").replace(/</g,"&lt;")}</div></td></tr>`).join("")
       +'</tbody></table>';} try{updateLeadFilterCounts();}catch(_){}
     resChart("cResCall",rescall); resChart("cResEmail",resemail);
