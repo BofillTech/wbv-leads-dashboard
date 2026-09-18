@@ -143,7 +143,7 @@
     <div class="kpis" id="kpis"></div>
 
     <div class="grid">
-      <div class="card"><h2>Inquiries by channel</h2><p class="hint">Genuine prospect touches (voicemails & operational mail excluded)</p><canvas id="cInq"></canvas></div>
+      <div class="card"><h2>Inquiries by channel</h2><p class="hint">Shaded by lead type — new lead / existing lead / existing customer</p><canvas id="cInq"></canvas></div>
       <div class="card"><h2>Conversion funnel by channel</h2><p class="hint">Inquiry → followed-up → booked</p><canvas id="cFunnel"></canvas></div>
     </div>
 
@@ -254,11 +254,11 @@ function kpiCards(k){
     ["Inbound 1-800",(k.inbound_1800||0)],["Emails",(k.emails||0)],["Booking value",money(k.booked_value)]];
   document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi"><div class="v">${c[1].toLocaleString?c[1].toLocaleString():c[1]}</div><div class="l">${c[0]}</div></div>`).join("");
 }
-function bar(id,labels,ds,horizontal){
+function bar(id,labels,ds,horizontal,stacked){
   if(charts[id])charts[id].destroy();
   charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:ds},
     options:{indexAxis:horizontal?'y':'x',responsive:true,plugins:{legend:{display:ds.length>1,labels:{color:"#3a5562"}}},
-      scales:{x:{ticks:{color:"#5d7888"},grid:{color:"#eef3f4"}},y:{beginAtZero:true,ticks:{color:"#5d7888",precision:0},grid:{color:"#eef3f4"}}}}});
+      scales:{x:{stacked:!!stacked,ticks:{color:"#5d7888"},grid:{color:"#eef3f4"}},y:{stacked:!!stacked,beginAtZero:true,ticks:{color:"#5d7888",precision:0},grid:{color:"#eef3f4"}}}}});
 }
 function doughnut(id,labels,data,colors){
   if(charts[id])charts[id].destroy();
@@ -340,10 +340,10 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier")
     ]);
     kpiCards(kpiA[0]||{});
     renderResv(pipeline,ancillary,bactivity,paysum);
@@ -351,7 +351,7 @@ async function loadAll(){
     renderSplit(tsplit);
     renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
-    bar("cInq",fl,[{label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:6}]);
+    {const ct=ctier||[];bar("cInq",ct.map(r=>cap(r.channel)),[{label:"New lead",data:ct.map(r=>r.new_lead),backgroundColor:C.teal,borderRadius:4,stack:"s"},{label:"Existing lead",data:ct.map(r=>r.existing_lead),backgroundColor:C.sand,borderRadius:4,stack:"s"},{label:"Existing customer",data:ct.map(r=>r.existing_customer),backgroundColor:C.coral,borderRadius:4,stack:"s"}],false,true);}
     bar("cFunnel",fl,[
       {label:"Inquiries",data:funnel.map(r=>r.inquiries),backgroundColor:C.teal,borderRadius:5},
       {label:"Followed up",data:funnel.map(r=>r.followed_up),backgroundColor:C.sand,borderRadius:5},
