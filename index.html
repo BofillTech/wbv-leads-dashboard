@@ -149,7 +149,7 @@
 
     <div class="grid">
       <div class="card"><h2>Calls & texts per employee</h2><p class="hint">Calls / connected / voicemail / texts · per agent</p><canvas id="cAgents"></canvas></div>
-      <div class="card"><h2>Email intent</h2><p class="hint">info@ inbox · heuristic scoring (AI job refines)</p><canvas id="cEmail"></canvas></div>
+      <div class="card"><h2>Email leads by type</h2><p class="hint">info@ inbox inquiries · new lead / existing lead / existing customer</p><canvas id="cEmail"></canvas></div>
     </div>
 
     <div class="grid">
@@ -363,7 +363,7 @@ async function loadAll(){
       {label:"Voicemail",data:agents.map(r=>r.voicemail),backgroundColor:C.sand,borderRadius:5},{label:"Texts",data:agents.map(r=>r.texts||0),backgroundColor:C.coral,borderRadius:5}]);
     const eo={hot:C.coral,warm:C.sand,cold:C.muted,operational:"#c3d0d6",unscored:"#dde6ea"};
     if(!email.length){doughnut("cEmail",["No email in range"],[1],["#dde6ea"]);}
-    else{doughnut("cEmail",email.map(r=>cap(r.intent)),email.map(r=>r.cnt),email.map(r=>eo[r.intent]||C.teal));}
+    else{var et=(ctier||[]).find(function(x){return x.channel==="email";})||{new_lead:0,existing_lead:0,existing_customer:0};doughnut("cEmail",["New lead","Existing lead","Existing customer"],[et.new_lead||0,et.existing_lead||0,et.existing_customer||0],[C.teal,C.sand,C.coral]);}
     const ib=inboundA[0]||{inbound:0,outbound:0};
     bar("cInbound",["Inbound","Outbound"],[{label:"Calls",data:[ib.inbound||0,ib.outbound||0],backgroundColor:[C.teal,C.sand],borderRadius:6}]);
     const bw=document.getElementById("bsWrap");
