@@ -154,7 +154,7 @@
 
     <div class="grid">
       <div class="card"><h2>1-800 inbound vs outbound</h2><p class="hint">SignalWire calls on the reservations line</p><canvas id="cInbound"></canvas></div>
-      <div class="card"><h2>Bookings: online vs PMS</h2><p class="hint">Cloudbeds — fills in once connected</p><div id="bsWrap"><canvas id="cBook"></canvas></div></div>
+      <div class="card"><h2>Bookings: online vs PMS</h2><p class="hint">Cloudbeds — status split + new vs returning guests</p><div id="bsWrap"><canvas id="cBook"></canvas></div></div>
     </div>
 
     <div class="grid">
@@ -321,8 +321,8 @@ function renderResv(pipeline,ancillary,bactivity,paysum){function esc(x){return 
   var stat=function(l,v,sub){return '<div class="rstat"><div class="rstat-v">'+v+'</div><div class="rstat-l">'+l+'</div>'+(sub?'<div class="rstat-s">'+sub+'</div>':'')+'</div>';};
   var head='<div class="rstats">'+stat("Confirmed",conf.c,money(conf.v))+stat("Pending holds",pend.c,money(pend.v))+stat("Cancelled",canc.c,"")+stat("Extra charges",money(ps.extra_charges),"fees + products")+stat("Payments collected",money(ps.payments_collected),(ps.payments_count||0)+" payments")+stat("Holds released",(a.holds_released||0),"lost holds")+'</div>';
   var rows=(bactivity||[]); var tbl;
-  if(!rows.length){ tbl='<div class="empty">No reservation activity in this range yet \u2014 it accrues as Cloudbeds syncs each day.</div>'; }
-  else { tbl='<table><thead><tr><th>Date</th><th>Guest</th><th>Activity</th><th>Amount</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+fmtDate(r.occurred_at)+'</td><td>'+(esc(r.guest_name)||"\u2014")+'</td><td>'+esc(r.detail||r.activity_type)+'</td><td class="num">'+(r.amount!=null?money(r.amount):"")+'</td></tr>';}).join("")+'</tbody></table>'; }
+  if(!rows.length){ tbl='<div class="empty">No reservation activity in this range yet — it accrues as Cloudbeds syncs each day.</div>'; }
+  else { tbl='<table><thead><tr><th>Date</th><th>Guest</th><th>Activity</th><th>Amount</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+fmtDate(r.occurred_at)+'</td><td>'+(esc(r.guest_name)||"—")+'</td><td>'+esc(r.detail||r.activity_type)+'</td><td class="num">'+(r.amount!=null?money(r.amount):"")+'</td></tr>';}).join("")+'</tbody></table>'; }
   var el=document.getElementById("resvWrap"); if(el) el.innerHTML=head+tbl;
 }
 
@@ -340,9 +340,9 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
-      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
+      rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
       rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier")
     ]);
     kpiCards(kpiA[0]||{});
@@ -368,9 +368,13 @@ async function loadAll(){
     bar("cInbound",["Inbound","Outbound"],[{label:"Calls",data:[ib.inbound||0,ib.outbound||0],backgroundColor:[C.teal,C.sand],borderRadius:6}]);
     const bw=document.getElementById("bsWrap");
     if(!bsource.length){bw.innerHTML='<div class="empty">No bookings in this range.</div>';}
-    else{bw.innerHTML='<canvas id="cBook"></canvas>';bar("cBook",bsource.map(r=>cap(r.entered_via||"?")),[
+    else{bw.innerHTML='<canvas id="cBook" style="max-height:150px"></canvas><div class="hint" style="text-align:center;margin:10px 0 2px">By guest type — new vs returning</div><canvas id="cBookGuest" style="max-height:150px"></canvas>';bar("cBook",bsource.map(r=>cap(r.entered_via||"?")),[
       {label:"Confirmed",data:bsource.map(r=>r.confirmed),backgroundColor:C.teal,borderRadius:5},
-      {label:"Pending",data:bsource.map(r=>r.pending),backgroundColor:C.sand,borderRadius:5}]);}
+      {label:"Pending",data:bsource.map(r=>r.pending),backgroundColor:C.sand,borderRadius:5}]);
+      var gmap={};(bguest||[]).forEach(function(g){gmap[g.entered_via]=g;});
+      bar("cBookGuest",bsource.map(r=>cap(r.entered_via||"?")),[
+      {label:"New guest",data:bsource.map(r=>(gmap[r.entered_via]||{}).new_guest||0),backgroundColor:C.teal2,borderRadius:5},
+      {label:"Returning",data:bsource.map(r=>(gmap[r.entered_via]||{}).returning_guest||0),backgroundColor:C.coral,borderRadius:5}]);}
     const wrap=document.getElementById("leadsWrap");
     if(!leads.length){wrap.innerHTML='<div class="empty">No hot/warm leads in this range.</div>';}
     else{wrap.innerHTML='<table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody>'
