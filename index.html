@@ -183,6 +183,10 @@
       <h2 style="font-size:14px;margin:20px 0 4px">Sales vs logistics</h2><p class="hint">How tracked time splits between selling and existing-guest logistics. Logistics is temporarily inflated by one-time credit-card collection on old-system imports — expect it to shrink as the migration clears.</p>
       <div id="splitWrap"></div>
     </div>
+    <div class="card full">
+      <h2>Staff coverage &amp; utilization</h2><p class="hint">Scheduled days &amp; hours (from the Amy/Rachel roster) vs tracked comms activity. Utilization = tracked call/text/email time ÷ scheduled hours — a floor, since Cloudbeds &amp; other untracked work aren’t counted.</p>
+      <div id="staffCovWrap"></div>
+    </div>
   </div>
   <footer>Live aggregate + lead data via your White Bay Villas login. Raw tables stay locked at the database level. · Bofill Technologies</footer>
 </div>
@@ -310,6 +314,22 @@ function renderHours(rows){
   var el=document.getElementById("hoursWrap"); if(el) el.innerHTML=head+tbl;
 }
 
+function renderStaffCoverage(rows){
+  rows=rows||[]; var el=document.getElementById("staffCovWrap"); if(!el) return;
+  if(!rows.length){ el.innerHTML='<div class="empty">No schedule data in this range.</div>'; return; }
+  function esc(x){return String(x==null?"":x).replace(/[<>&]/g,function(c){return c==="<"?"&lt;":(c===">"?"&gt;":"&amp;");});}
+  var html=rows.map(function(r){
+    var u=(r.utilization_pct==null)?"—":(r.utilization_pct+"%");
+    return '<div class="rstats">'
+      +'<div class="rstat"><div class="rstat-v">'+(r.scheduled_days||0)+'</div><div class="rstat-l">'+esc(r.person)+' days on</div><div class="rstat-s">'+(r.days_off||0)+' off</div></div>'
+      +'<div class="rstat"><div class="rstat-v">'+(r.scheduled_hours||0)+'h</div><div class="rstat-l">'+esc(r.person)+' scheduled</div></div>'
+      +'<div class="rstat"><div class="rstat-v">'+(r.tracked_hours||0)+'h</div><div class="rstat-l">'+esc(r.person)+' tracked comms</div></div>'
+      +'<div class="rstat"><div class="rstat-v">'+u+'</div><div class="rstat-l">'+esc(r.person)+' utilization</div><div class="rstat-s">tracked ÷ scheduled</div></div>'
+      +'</div>';
+  }).join("");
+  el.innerHTML=html;
+}
+
 function renderTiers(rows){rows=rows||[];var tw=document.getElementById('tiersWrap');if(!tw)return;function esc(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});}var L={new_lead:'New lead',existing_lead:'Existing lead',existing_customer:'Existing customer'};var K={new_lead:'t-new',existing_lead:'t-exl',existing_customer:'t-cust'};var cnt={'':rows.length,new_lead:0,existing_lead:0,existing_customer:0};rows.forEach(function(r){cnt[r.tier]=(cnt[r.tier]||0)+1;});[].forEach.call(document.querySelectorAll('#tierFilter .tf'),function(b){var f=b.getAttribute('data-t');var n=b.querySelector('.tf-n');if(n)n.textContent=cnt[f]||0;});if(!rows.length){tw.innerHTML='<div class="empty">No leads in this range.</div>';return;}var body=rows.map(function(r){var lt=r.last_touch?new Date(r.last_touch).toLocaleDateString():'';var contact=esc(r.phone||r.email||'');var note=r.tier==='existing_customer'?('Booked/stayed: '+esc(r.matched_stay||'')):((r.prior_contacts>0)?(r.prior_contacts+' prior contact'+(r.prior_contacts>1?'s':'')):'First-ever contact');return '<tr data-t="'+r.tier+'"><td>'+esc(r.name||'—')+'</td><td><span class="tbadge '+(K[r.tier]||'')+'">'+(L[r.tier]||r.tier)+'</span></td><td>'+esc(r.channels||'')+'</td><td>'+contact+'</td><td>'+lt+'</td><td>'+note+'</td></tr>';}).join('');tw.innerHTML='<table><thead><tr><th>Name</th><th>Type</th><th>Channels</th><th>Contact</th><th>Last touch</th><th>History</th></tr></thead><tbody>'+body+'</tbody></table>';}
 document.addEventListener('click',function(e){var b=e.target.closest?e.target.closest('#tierFilter .tf'):null;if(!b)return;[].forEach.call(document.querySelectorAll('#tierFilter .tf'),function(x){x.classList.remove('on');});b.classList.add('on');var f=b.getAttribute('data-t');[].forEach.call(document.querySelectorAll('#tiersWrap tbody tr'),function(tr){tr.style.display=(!f||tr.getAttribute('data-t')===f)?'':'none';});});
 function renderResv(pipeline,ancillary,bactivity,paysum){function esc(x){return String(x==null?"":x).replace(/[<>&]/g,function(c){return c==="<"?"&lt;":(c===">"?"&gt;":"&amp;");});}
@@ -340,15 +360,16 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage")
     ]);
     kpiCards(kpiA[0]||{});
     renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
+    renderStaffCoverage(staffcov);
     renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
     {const ct=ctier||[];bar("cInq",ct.map(r=>cap(r.channel)),[{label:"New lead",data:ct.map(r=>r.new_lead),backgroundColor:C.teal,borderRadius:4,stack:"s"},{label:"Existing lead",data:ct.map(r=>r.existing_lead),backgroundColor:C.sand,borderRadius:4,stack:"s"},{label:"Existing customer",data:ct.map(r=>r.existing_customer),backgroundColor:C.coral,borderRadius:4,stack:"s"}],false,true);}
