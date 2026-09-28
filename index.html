@@ -148,7 +148,7 @@
     </div>
 
     <div class="grid">
-      <div class="card"><h2>Calls & texts per employee</h2><p class="hint">Calls / connected / voicemail / texts · per agent</p><canvas id="cAgents"></canvas></div>
+      <div class="card"><h2>Calls & texts per employee</h2><p class="hint">Calls &amp; texts split by direction (out / in) · connected &amp; voicemail · per agent</p><canvas id="cAgents"></canvas></div>
       <div class="card"><h2>Email intent &amp; type</h2><p class="hint">info@ inbox · intent (top) + lead type (bottom)</p><canvas id="cEmail"></canvas><div class="hint" style="text-align:center;margin:10px 0 2px">By lead type — new / existing lead / customer</div><canvas id="cEmailType"></canvas></div>
     </div>
 
@@ -381,9 +381,12 @@ async function loadAll(){
       {label:"Booked",data:funnel.map(r=>r.booked),backgroundColor:C.coral,borderRadius:5}]);
     const al=agents.map(r=>cap(r.agent));
     bar("cAgents",al,[
-      {label:"Calls",data:agents.map(r=>r.calls),backgroundColor:C.teal,borderRadius:5},
-      {label:"Connected",data:agents.map(r=>r.connected),backgroundColor:C.teal2,borderRadius:5},
-      {label:"Voicemail",data:agents.map(r=>r.voicemail),backgroundColor:C.sand,borderRadius:5},{label:"Texts",data:agents.map(r=>r.texts||0),backgroundColor:C.coral,borderRadius:5}]);
+      {label:"Calls out",data:agents.map(r=>r.calls_out),backgroundColor:C.teal,borderRadius:5},
+      {label:"Calls in",data:agents.map(r=>r.calls_in),backgroundColor:C.teal2,borderRadius:5},
+      {label:"Connected",data:agents.map(r=>r.connected),backgroundColor:"#8fd0ce",borderRadius:5},
+      {label:"Voicemail",data:agents.map(r=>r.voicemail),backgroundColor:C.sand,borderRadius:5},
+      {label:"Texts out",data:agents.map(r=>r.texts_out),backgroundColor:C.coral,borderRadius:5},
+      {label:"Texts in",data:agents.map(r=>r.texts_in),backgroundColor:"#eab59f",borderRadius:5}]);
     const eo={hot:C.coral,warm:C.sand,cold:C.muted,operational:"#c3d0d6",unscored:"#dde6ea"};
     if(!email.length){doughnut("cEmail",["No email in range"],[1],["#dde6ea"]);}
     else{doughnut("cEmail",email.map(r=>cap(r.intent)),email.map(r=>r.cnt),email.map(r=>eo[r.intent]||C.teal));var et=(ctier||[]).find(function(x){return x.channel==="email";})||{new_lead:0,existing_lead:0,existing_customer:0};doughnut("cEmailType",["New lead","Existing lead","Existing customer"],[et.new_lead||0,et.existing_lead||0,et.existing_customer||0],[C.teal,C.sand,C.coral]);}
