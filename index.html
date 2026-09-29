@@ -46,6 +46,8 @@
   .kpi:nth-child(4){border-left-color:var(--teal2)} .kpi:nth-child(5){border-left-color:var(--muted)} .kpi:nth-child(6){border-left-color:var(--coral)}
   .kpi .v{font-size:27px;font-weight:700}
   .kpi .l{color:var(--muted);font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:5px}
+  .kpi.social{border-left-color:#c13584}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 22px}
   .card h2{font-size:14px;margin:0 0 3px;font-weight:700}
@@ -264,6 +266,13 @@ function kpiCards(k){
     ["Inbound 1-800",(k.inbound_1800||0)],["Emails",(k.emails||0)],["Booking value",money(k.booked_value)]];
   document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi"><div class="v">${c[1].toLocaleString?c[1].toLocaleString():c[1]}</div><div class="l">${c[0]}</div></div>`).join("");
 }
+function appendSocialKpis(sum){
+  sum=sum||[]; var byp={instagram:{r:0,a:0,w:0},facebook:{r:0,a:0,w:0}};
+  sum.forEach(function(x){var p=byp[x.platform]; if(p){p.r+=+x.received;p.a+=+x.answered;p.w+=+x.awaiting;}});
+  var k=document.getElementById('kpis'); if(!k) return;
+  function card(label,b){return '<div class="kpi social"><div class="v">'+b.r+'</div><div class="l">'+label+'</div><div class="sub">'+b.a+' replied · '+b.w+' awaiting</div></div>';}
+  k.insertAdjacentHTML('beforeend', card('Facebook comments',byp.facebook)+card('Instagram comments',byp.instagram));
+}
 function bar(id,labels,ds,horizontal,stacked){
   if(charts[id])charts[id].destroy();
   charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:ds},
@@ -406,6 +415,7 @@ async function loadAll(){
       rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_unanswered")
     ]);
     kpiCards(kpiA[0]||{});
+    appendSocialKpis(scomm);
     renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
