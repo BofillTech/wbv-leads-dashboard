@@ -196,7 +196,7 @@
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full" id="socialCard">
-      <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments received vs replied · tap a tile to filter · list of comments still needing a reply</p></div></div>
+      <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments · received vs replied · tap a tile to filter the list below</p></div></div>
       <div id="socialWrap"></div>
     </div>
     <div class="card full">
@@ -333,7 +333,7 @@ function nbTable(rows){
    +'</tbody></table>';
 }
 
-function renderSocial(sum,un){ _soc.sum=sum||[]; _soc.un=un||[]; _soc.filter='all'; drawSocial(); }
+function renderSocial(sum,list){ _soc.sum=sum||[]; _soc.un=list||[]; _soc.filter='all'; drawSocial(); }
 function setSocialFilter(f){ _soc.filter=(_soc.filter===f?'all':f); drawSocial(); }
 function drawSocial(){
   var sum=_soc.sum||[], un=_soc.un||[], f=_soc.filter||'all';
@@ -344,23 +344,24 @@ function drawSocial(){
   var pct=tot.received?Math.round(100*tot.answered/tot.received):0;
   function tile(sf,label,v,sub){var isf=!!sf;var on=(isf&&sf===f)?' sf-on':'';return '<div class="rstat'+(isf?' sf':'')+on+'"'+(isf?' data-sf="'+sf+'"':'')+'><div class="rstat-v">'+v+'</div><div class="rstat-l">'+label+'</div>'+(sub?'<div class="rstat-s">'+sub+'</div>':'')+'</div>';}
   var head='<div class="rstats">'
-    +tile('all','Comments received',tot.received,f==='all'?'showing all':'show all')
-    +tile(null,'Replied',tot.answered,pct+'% coverage')
-    +tile(null,'Awaiting reply',tot.awaiting,'')
+    +tile('all','Comments received',tot.received,'')
+    +tile('replied','Replied',tot.answered,pct+'% coverage')
+    +tile('awaiting','Awaiting reply',tot.awaiting,'')
     +(byp.instagram?tile('instagram','Instagram',byp.instagram.received,byp.instagram.answered+' replied · '+byp.instagram.awaiting+' awaiting'):'')
     +(byp.facebook?tile('facebook','Facebook',byp.facebook.received,byp.facebook.answered+' replied · '+byp.facebook.awaiting+' awaiting'):'')
     +'</div>';
-  var rows=un.filter(function(r){return f==='all'||r.platform===f;});
+  var rows=un.filter(function(r){ if(f==='all')return true; if(f==='replied')return !!r.answered; if(f==='awaiting')return !r.answered; return r.platform===f; });
   var body;
-  if(!rows.length){ body='<div class="empty">All caught up — no '+(f==='all'?'':cap(f)+' ')+'comments awaiting a reply in this range.</div>'; }
+  if(!rows.length){ body='<div class="empty">No '+(f==='all'||f==='instagram'||f==='facebook'?(f==='all'?'':cap(f)+' '):(f+' '))+'comments in this range.</div>'; }
   else{
-    var lbl='Awaiting reply ('+rows.length+')'+(f==='all'?'':' · '+cap(f));
-    body='<h4 style="margin:14px 0 6px;font-size:13px">'+lbl+'</h4><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Platform</th><th>Comment</th><th>Post</th><th></th></tr></thead><tbody>'
+    var lbl='Comments ('+rows.length+')'+(f==='all'?'':' · '+cap(f));
+    body='<h4 style="margin:14px 0 6px;font-size:13px">'+lbl+'</h4><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Platform</th><th>Status</th><th>Comment</th><th>Post</th><th></th></tr></thead><tbody>'
      +rows.map(function(r){
         var when=r.occurred_at?new Date(r.occurred_at).toLocaleString():'';
         var link=r.permalink?'<a href="'+esc(r.permalink)+'" target="_blank" rel="noopener">open</a>':'';
-        var btn=(r.platform==='instagram')?'<button class="dbtn" style="padding:5px 10px" onclick="replySocial(\''+r.platform+'\',\''+esc(r.comment_id)+'\')">Reply</button>':'<span class="hint">reply in app</span>';
-        return '<tr><td style="white-space:nowrap">'+when+'</td><td>'+esc(r.platform)+'</td><td style="max-width:440px;overflow-wrap:anywhere">'+esc(r.body)+'</td><td>'+link+'</td><td>'+btn+'</td></tr>';
+        var status=r.answered?'<span class="badge" style="background:#e5f4f3;color:#12716e">replied</span>':'<span class="badge warm">awaiting</span>';
+        var act= r.answered ? '' : (r.platform==='instagram' ? '<button class="dbtn" style="padding:5px 10px" onclick="replySocial(\''+r.platform+'\',\''+esc(r.comment_id)+'\')">Reply</button>' : '<span class="hint">reply in app</span>');
+        return '<tr><td style="white-space:nowrap">'+when+'</td><td>'+esc(r.platform)+'</td><td>'+status+'</td><td style="max-width:440px;overflow-wrap:anywhere">'+esc(r.body)+'</td><td>'+link+'</td><td>'+act+'</td></tr>';
      }).join('')+'</tbody></table></div>';
   }
   el.innerHTML=head+body;
@@ -450,10 +451,10 @@ async function nbFetchAll(){
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,sunans]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_unanswered")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list")
     ]);
     kpiCards(kpiA[0]||{});
     appendSocialKpis(scomm);
@@ -462,7 +463,7 @@ async function loadAll(){
     renderHours(ahours);
     renderSplit(tsplit);
     renderStaffCoverage(staffcov);
-    renderSocial(scomm,sunans);
+    renderSocial(scomm,slist);
     renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
     {const ct=ctier||[];bar("cInq",ct.map(r=>cap(r.channel)),[{label:"New lead",data:ct.map(r=>r.new_lead),backgroundColor:C.teal,borderRadius:4,stack:"s"},{label:"Existing lead",data:ct.map(r=>r.existing_lead),backgroundColor:C.sand,borderRadius:4,stack:"s"},{label:"Existing customer",data:ct.map(r=>r.existing_customer),backgroundColor:C.coral,borderRadius:4,stack:"s"}],false,true);}
