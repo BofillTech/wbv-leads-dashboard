@@ -172,6 +172,10 @@
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full">
+      <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments received vs replied · list of comments still needing a reply</p></div></div>
+      <div id="socialWrap"></div>
+    </div>
+    <div class="card full">
       <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
       <div id="nbWrap"></div></div>
     <div class="card full">
@@ -285,6 +289,40 @@ function nbTable(rows){
    +'</tbody></table>';
 }
 
+function renderSocial(sum,un){
+  sum=sum||[]; un=un||[];
+  var el=document.getElementById('socialWrap'); if(!el) return;
+  var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};
+  var tot={received:0,answered:0,awaiting:0}, byp={};
+  sum.forEach(function(r){tot.received+=+r.received;tot.answered+=+r.answered;tot.awaiting+=+r.awaiting;var p=r.platform;byp[p]=byp[p]||{received:0,answered:0,awaiting:0};byp[p].received+=+r.received;byp[p].answered+=+r.answered;byp[p].awaiting+=+r.awaiting;});
+  var pct=tot.received?Math.round(100*tot.answered/tot.received):0;
+  var head='<div class="rstats">'
+    +'<div class="rstat"><div class="rstat-v">'+tot.received+'</div><div class="rstat-l">Comments received</div></div>'
+    +'<div class="rstat"><div class="rstat-v">'+tot.answered+'</div><div class="rstat-l">Replied</div><div class="rstat-s">'+pct+'% coverage</div></div>'
+    +'<div class="rstat"><div class="rstat-v">'+tot.awaiting+'</div><div class="rstat-l">Awaiting reply</div></div>';
+  [['instagram','Instagram'],['facebook','Facebook']].forEach(function(pp){var p=pp[0];if(byp[p]){var b=byp[p];head+='<div class="rstat"><div class="rstat-v">'+b.received+'</div><div class="rstat-l">'+pp[1]+'</div><div class="rstat-s">'+b.answered+' replied · '+b.awaiting+' awaiting</div></div>';}});
+  head+='</div>';
+  var body;
+  if(!un.length){ body='<div class="empty">All caught up — no comments awaiting a reply in this range.</div>'; }
+  else{
+    body='<h4 style="margin:14px 0 6px;font-size:13px">Awaiting reply ('+un.length+')</h4><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Platform</th><th>Comment</th><th>Post</th><th></th></tr></thead><tbody>'
+     +un.map(function(r){
+        var when=r.occurred_at?new Date(r.occurred_at).toLocaleString():'';
+        var link=r.permalink?'<a href="'+esc(r.permalink)+'" target="_blank" rel="noopener">open</a>':'';
+        var btn=(r.platform==='instagram')?'<button class="dbtn" style="padding:5px 10px" onclick="replySocial(\''+r.platform+'\',\''+esc(r.comment_id)+'\')">Reply</button>':'<span class="hint">reply in app</span>';
+        return '<tr><td style="white-space:nowrap">'+when+'</td><td>'+esc(r.platform)+'</td><td style="max-width:440px;overflow-wrap:anywhere">'+esc(r.body)+'</td><td>'+link+'</td><td>'+btn+'</td></tr>';
+     }).join('')+'</tbody></table></div>';
+  }
+  el.innerHTML=head+body;
+}
+async function replySocial(platform,cid){
+  var txt=prompt('Reply to this '+platform+' comment:');
+  if(!txt) return;
+  try{var s=session();var r=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_queue_social_reply',{method:'POST',headers:{apikey:PUBLISHABLE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_platform:platform,p_comment_id:cid,p_text:txt})});
+    if(r.ok){alert('Reply queued — it will send on the next sync.');}else{alert('Could not queue reply.');}
+  }catch(e){alert('Could not queue reply.');}
+}
+
 function renderSplit(rows){
   rows=(rows||[]).filter(function(r){return r.agent==="Amy"||r.agent==="Rachel";});
   var el=document.getElementById("splitWrap"); if(!el) return;
@@ -362,16 +400,17 @@ async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   document.getElementById("rangeLbl").textContent=range.label+"  ·  "+fmtDate(range.from)+" – "+fmtDate(range.to);
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,sunans]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_unanswered")
     ]);
     kpiCards(kpiA[0]||{});
     renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
     renderStaffCoverage(staffcov);
+    renderSocial(scomm,sunans);
     renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
     {const ct=ctier||[];bar("cInq",ct.map(r=>cap(r.channel)),[{label:"New lead",data:ct.map(r=>r.new_lead),backgroundColor:C.teal,borderRadius:4,stack:"s"},{label:"Existing lead",data:ct.map(r=>r.existing_lead),backgroundColor:C.sand,borderRadius:4,stack:"s"},{label:"Existing customer",data:ct.map(r=>r.existing_customer),backgroundColor:C.coral,borderRadius:4,stack:"s"}],false,true);}
