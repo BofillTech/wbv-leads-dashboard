@@ -48,6 +48,7 @@
   .kpi .l{color:var(--muted);font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
   .kpi .sub{font-size:11px;color:var(--muted);margin-top:5px}
   .kpi.social{border-left-color:#c13584}
+  .kpi.money{border-left-color:#2e7d32}
   .kpi[data-scroll]{cursor:pointer;transition:transform .1s ease,box-shadow .1s ease}
   .kpi[data-scroll]:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,34,48,.12)}
   .kpi[data-scroll]:active{transform:translateY(0)}
@@ -190,7 +191,7 @@
     <div class="card full">
       <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
       <div id="nbWrap"></div></div>
-    <div class="card full">
+    <div class="card full" id="resvCard">
       <h2>Reservations — pipeline &amp; activity</h2><p class="hint">Cloudbeds holds, confirmations, releases, date moves, provisions &amp; payments collected · activity accrues daily</p>
       <div id="resvWrap"></div></div>
     <div class="card full">
@@ -282,6 +283,11 @@ function appendSocialKpis(sum){
   var k=document.getElementById('kpis'); if(!k) return;
   function card(label,b){return '<div class="kpi social" data-scroll="socialCard"><div class="v">'+b.r+'</div><div class="l">'+label+'</div><div class="sub">'+b.a+' replied · '+b.w+' awaiting</div></div>';}
   k.insertAdjacentHTML('beforeend', card('Facebook comments',byp.facebook)+card('Instagram comments',byp.instagram));
+}
+function appendPaymentsKpi(paysum){
+  var ps=(paysum&&paysum[0])||{}; var k=document.getElementById('kpis'); if(!k) return;
+  var v=Math.round(ps.payments_collected||0);
+  k.insertAdjacentHTML('beforeend','<div class="kpi money" data-scroll="resvCard"><div class="v">$'+v.toLocaleString()+'</div><div class="l">Payments taken in</div><div class="sub">'+(ps.payments_count||0)+' payments · collected</div></div>');
 }
 // KPI tile → scroll to matching section
 document.addEventListener('click',function(e){
@@ -433,6 +439,7 @@ async function loadAll(){
     ]);
     kpiCards(kpiA[0]||{});
     appendSocialKpis(scomm);
+    appendPaymentsKpi(paysum);
     renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
