@@ -101,6 +101,9 @@
   .leadfilter .lf .lf-n{font-size:12px;font-weight:700;color:var(--ink)}
   .leadfilter .lf.on .lf-n{color:#fff}
   .leadfilter .lf.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  #intentFilter .lf.on[data-i="hot"]{background:var(--coral);border-color:var(--coral)}
+  #intentFilter .lf.on[data-i="warm"]{background:var(--sand);border-color:var(--sand);color:#3a2c08}
+  #intentFilter .lf.on[data-i="warm"] .lf-n{color:#3a2c08}
   .rstats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
   .rstat{flex:1 1 130px;background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
   .rstat-v{font-size:20px;font-weight:700;color:var(--ink)}
@@ -192,7 +195,7 @@
     </div>
 
     <div class="card full" id="leadsCard">
-      <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="leadFilter"><button class="lf on" data-f=""><span>All</span><b class="lf-n"></b></button><button class="lf" data-f="phone"><span>Phone</span><b class="lf-n"></b></button><button class="lf" data-f="email"><span>Email</span><b class="lf-n"></b></button><button class="lf" data-f="form"><span>Website form</span><b class="lf-n"></b></button><button class="lf" data-f="social"><span>Social</span><b class="lf-n"></b></button><button class="lf" data-f="text"><span>Text</span><b class="lf-n"></b></button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
+      <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="intentFilter"><button class="lf on" data-i=""><span>All</span><b class="lf-n"></b></button><button class="lf" data-i="hot"><span>Hot</span><b class="lf-n"></b></button><button class="lf" data-i="warm"><span>Warm</span><b class="lf-n"></b></button></div><div class="leadfilter" id="leadFilter"><button class="lf on" data-f=""><span>All</span><b class="lf-n"></b></button><button class="lf" data-f="phone"><span>Phone</span><b class="lf-n"></b></button><button class="lf" data-f="email"><span>Email</span><b class="lf-n"></b></button><button class="lf" data-f="form"><span>Website form</span><b class="lf-n"></b></button><button class="lf" data-f="social"><span>Social</span><b class="lf-n"></b></button><button class="lf" data-f="text"><span>Text</span><b class="lf-n"></b></button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full" id="socialCard">
@@ -226,6 +229,7 @@ const SS_KEY="wbv_session";
 const C={teal:"#1f9c98",teal2:"#2bb3b0",sand:"#e0b667",coral:"#e07a5f",muted:"#9bb0bb"};
 let charts={};
 let _soc={sum:[],un:[],filter:'all'};
+window._leadCh=''; window._leadIn='';
 const session=()=>{try{return JSON.parse(localStorage.getItem(SS_KEY));}catch(e){return null;}};
 const setSession=s=>localStorage.setItem(SS_KEY,JSON.stringify(s));
 const clearSession=()=>localStorage.removeItem(SS_KEY);
@@ -352,7 +356,7 @@ function drawSocial(){
     +'</div>';
   var rows=un.filter(function(r){ if(f==='all')return true; if(f==='replied')return !!r.answered; if(f==='awaiting')return !r.answered; return r.platform===f; });
   var body;
-  if(!rows.length){ body='<div class="empty">No '+(f==='all'||f==='instagram'||f==='facebook'?(f==='all'?'':cap(f)+' '):(f+' '))+'comments in this range.</div>'; }
+  if(!rows.length){ body='<div class="empty">No '+(f==='all'?'':cap(f)+' ')+'comments in this range.</div>'; }
   else{
     var lbl='Comments ('+rows.length+')'+(f==='all'?'':' · '+cap(f));
     body='<h4 style="margin:14px 0 6px;font-size:13px">'+lbl+'</h4><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Platform</th><th>Status</th><th>Comment</th><th>Post</th><th></th></tr></thead><tbody>'
@@ -496,11 +500,11 @@ async function loadAll(){
     const wrap=document.getElementById("leadsWrap");
     if(!leads.length){wrap.innerHTML='<div class="empty">No hot/warm leads in this range.</div>';}
     else{wrap.innerHTML='<table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody>'
-      +leads.map(l=>`<tr data-cat="${((l.channels||'')+(/form submission/i.test(l.last_note||'')?' form':'')).toLowerCase()}"><td><b>${l.name||"—"}</b></td>
+      +leads.map(l=>`<tr data-intent="${(l.top_intent||'').toLowerCase()}" data-cat="${((l.channels||'')+(/form submission/i.test(l.last_note||'')?' form':'')).toLowerCase()}"><td><b>${l.name||"—"}</b></td>
       <td><span class="badge ${l.top_intent}">${l.top_intent}</span></td>
       <td><span class="tbadge ${({new_lead:'t-new',existing_lead:'t-exl',existing_customer:'t-cust'})[l.tier]||''}">${({new_lead:'New',existing_lead:'Existing lead',existing_customer:'Customer'})[l.tier]||(l.tier||'—')}</span></td><td>${l.channels||""}</td><td>${l.email||""}</td><td>${l.phone||""}</td>
       <td>${fmtDate(l.last_touch)}</td><td class="note-cell" title="Click to expand/collapse" style="color:var(--muted)"><div class="clamp">${(l.last_note||"").replace(/</g,"&lt;")}</div></td></tr>`).join("")
-      +'</tbody></table>';} try{updateLeadFilterCounts();}catch(_){}
+      +'</tbody></table>';} try{updateLeadFilterCounts();applyLeadFilters();}catch(_){}
     resChart("cResCall",rescall); resChart("cResEmail",resemail);
     nbTable(await nbFetchAll());
     document.getElementById("updated").textContent="Updated "+new Date().toLocaleString();
@@ -524,8 +528,14 @@ document.getElementById("seg").addEventListener("click",e=>{
 document.getElementById("applyCustom").addEventListener("click",()=>{ if(customRange()){ [...document.querySelectorAll("#seg button")].forEach(b=>b.classList.remove("active")); const cb=document.querySelector('#seg button[data-range="custom"]'); if(cb) cb.classList.add("active"); loadAll(); } });
 
 document.addEventListener('click',e=>{const c=e.target.closest('.note-cell');if(c)c.classList.toggle('expanded');});
-    function updateLeadFilterCounts(){var rows=[].slice.call(document.querySelectorAll('#leadsTbl tbody tr'));[].forEach.call(document.querySelectorAll('#leadFilter .lf'),function(b){var f=b.getAttribute('data-f')||'';var n=f?rows.filter(function(tr){return (tr.getAttribute('data-cat')||'').indexOf(f)>-1;}).length:rows.length;var sp=b.querySelector('.lf-n');if(sp)sp.textContent=n;});}
-    document.addEventListener('click',function(e){var b=e.target.closest('.lf');if(!b)return;var ff=b.parentNode;[].forEach.call(ff.querySelectorAll('.lf'),function(x){x.classList.remove('on');});b.classList.add('on');var f=b.getAttribute('data-f')||'';[].forEach.call(document.querySelectorAll('#leadsTbl tbody tr'),function(tr){var c=(tr.getAttribute('data-cat')||'');tr.style.display=(!f||c.indexOf(f)>-1)?'':'none';});});
+    function applyLeadFilters(){var ch=window._leadCh||'',ins=window._leadIn||'';[].forEach.call(document.querySelectorAll('#leadsTbl tbody tr'),function(tr){var c=(tr.getAttribute('data-cat')||'');var it=(tr.getAttribute('data-intent')||'');var ok=(!ch||c.indexOf(ch)>-1)&&(!ins||it===ins);tr.style.display=ok?'':'none';});}
+    function updateLeadFilterCounts(){var rows=[].slice.call(document.querySelectorAll('#leadsTbl tbody tr'));[].forEach.call(document.querySelectorAll('#leadFilter .lf'),function(b){var f=b.getAttribute('data-f')||'';var n=f?rows.filter(function(tr){return (tr.getAttribute('data-cat')||'').indexOf(f)>-1;}).length:rows.length;var sp=b.querySelector('.lf-n');if(sp)sp.textContent=n;});[].forEach.call(document.querySelectorAll('#intentFilter .lf'),function(b){var i=b.getAttribute('data-i')||'';var n=i?rows.filter(function(tr){return (tr.getAttribute('data-intent')||'')===i;}).length:rows.length;var sp=b.querySelector('.lf-n');if(sp)sp.textContent=n;});}
+    document.addEventListener('click',function(e){
+      var cb=e.target.closest('#leadFilter .lf');
+      if(cb){var ff=cb.parentNode;[].forEach.call(ff.querySelectorAll('.lf'),function(x){x.classList.remove('on');});cb.classList.add('on');window._leadCh=cb.getAttribute('data-f')||'';applyLeadFilters();return;}
+      var ib=e.target.closest('#intentFilter .lf');
+      if(ib){var ff2=ib.parentNode;[].forEach.call(ff2.querySelectorAll('.lf'),function(x){x.classList.remove('on');});ib.classList.add('on');window._leadIn=ib.getAttribute('data-i')||'';applyLeadFilters();return;}
+    });
 function openDaily(){var m=document.getElementById('dailyModal');var di=document.getElementById('dailyDate');if(!di.value){var y=new Date(Date.now()-864e5);di.value=y.toISOString().slice(0,10);}m.classList.add('show');runDaily();}
 function closeDaily(){document.getElementById('dailyModal').classList.remove('show');}
 function money2(n){return '$'+(Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
