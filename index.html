@@ -17,48 +17,50 @@
   #login input{width:100%;background:#0d1c25;border:1px solid #21404e;border-radius:8px;padding:11px;color:#eaf2f6;font-size:14px}
   #login button{width:100%;margin-top:22px}
   #loginErr{color:#e07a5f;font-size:12.5px;margin-top:12px;min-height:16px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 34px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
-  header h1{font-size:20px;margin:0;font-weight:700}
+  /* sticky compact top bar (header + KPIs) */
+  #topbar{position:sticky;top:0;z-index:30;background:var(--bg);box-shadow:0 3px 10px rgba(15,34,48,.07)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 34px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:17px;margin:0;font-weight:700}
   header h1 span{color:var(--teal)}
-  header .sub{color:var(--muted);font-size:12.5px;margin-top:3px}
-  .right{display:flex;align-items:center;gap:12px}
-  #updated{color:var(--muted);font-size:12px}
-  button{background:var(--teal);color:#fff;border:0;border-radius:8px;padding:9px 15px;font-weight:600;cursor:pointer;font-size:13px}
+  header .sub{color:var(--muted);font-size:11.5px;margin-top:1px}
+  .right{display:flex;align-items:center;gap:10px}
+  #updated{color:var(--muted);font-size:11.5px}
+  button{background:var(--teal);color:#fff;border:0;border-radius:8px;padding:8px 13px;font-weight:600;cursor:pointer;font-size:13px}
   button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
   button:hover{filter:brightness(1.05)}
   /* date picker */
   .picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .seg{display:inline-flex;background:#eef3f3;border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
-  .seg button{background:transparent;color:var(--muted);padding:6px 13px;border-radius:7px;font-weight:600}
+  .seg button{background:transparent;color:var(--muted);padding:5px 11px;border-radius:7px;font-weight:600}
   .seg button.active{background:var(--teal);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
   .seg button:hover{filter:none;color:var(--ink)}
   .seg button.active:hover{color:#fff}
   #customWrap{display:inline-flex;align-items:center;gap:6px}
   #customWrap .lbl{color:var(--muted);font-size:12px;font-weight:600}
-  #customWrap input{border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:13px;color:var(--ink);background:#fff}
+  #customWrap input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12.5px;color:var(--ink);background:#fff}
   #customWrap span{color:var(--muted);font-size:13px}
-  #applyCustom{padding:7px 12px}
-  .wrap{padding:26px 34px;max-width:1240px;margin:0 auto}
-  .rangeLbl{color:var(--muted);font-size:12.5px;margin:0 0 16px;font-weight:600}
-  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:22px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;border-left:4px solid var(--teal)}
+  #applyCustom{padding:6px 11px}
+  .kpibar{padding:8px 34px 10px;max-width:1240px;margin:0 auto}
+  .wrap{padding:18px 34px 26px;max-width:1240px;margin:0 auto}
+  .rangeLbl{color:var(--muted);font-size:11.5px;margin:0 0 7px;font-weight:600}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:0}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:8px 12px;border-left:4px solid var(--teal)}
   .kpi:nth-child(2){border-left-color:var(--coral)} .kpi:nth-child(3){border-left-color:var(--sand)}
   .kpi:nth-child(4){border-left-color:var(--teal2)} .kpi:nth-child(5){border-left-color:var(--muted)} .kpi:nth-child(6){border-left-color:var(--coral)}
-  .kpi .v{font-size:27px;font-weight:700}
-  .kpi .l{color:var(--muted);font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
-  .kpi .sub{font-size:11px;color:var(--muted);margin-top:5px}
+  .kpi .v{font-size:20px;font-weight:700;line-height:1.1}
+  .kpi .l{color:var(--muted);font-size:10px;margin-top:1px;text-transform:uppercase;letter-spacing:.4px}
+  .kpi .sub{font-size:10px;color:var(--muted);margin-top:2px}
   .kpi.social{border-left-color:#c13584}
   .kpi.money{border-left-color:#2e7d32}
   .kpi[data-scroll]{cursor:pointer;transition:transform .1s ease,box-shadow .1s ease}
   .kpi[data-scroll]:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,34,48,.12)}
   .kpi[data-scroll]:active{transform:translateY(0)}
-  .kpi[data-scroll]::after{content:"›";position:absolute;top:10px;right:12px;color:var(--muted);font-size:16px;opacity:0;transition:opacity .1s ease}
+  .kpi[data-scroll]::after{content:"›";position:absolute;top:6px;right:10px;color:var(--muted);font-size:15px;opacity:0;transition:opacity .1s ease}
   .kpi[data-scroll]{position:relative}
   .kpi[data-scroll]:hover::after{opacity:.6}
   @keyframes kpiflash{0%{box-shadow:0 0 0 0 rgba(31,156,152,.5)}100%{box-shadow:0 0 0 12px rgba(31,156,152,0)}}
   .flash-target{animation:kpiflash .9s ease-out}
-  .card{scroll-margin-top:18px}
-  .tiersCard,#tiersCard{scroll-margin-top:18px}
+  .card{scroll-margin-top:190px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 22px}
   .card h2{font-size:14px;margin:0 0 3px;font-weight:700}
@@ -114,7 +116,7 @@
   .empty{color:var(--muted);font-size:13px;padding:26px 0;text-align:center}
   footer{color:var(--muted);font-size:11.5px;text-align:center;padding:24px}
   #app{display:none}
-  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}.card{scroll-margin-top:150px}}
 </style>
 </head>
 <body>
@@ -130,6 +132,7 @@
 </div></div>
 
 <div id="app">
+  <div id="topbar">
   <header>
     <div><h1>White Bay Villas · <span>Leads Dashboard</span></h1>
     <div class="sub">All channels — calls, texts, email & bookings · live from the attribution warehouse</div></div>
@@ -150,10 +153,13 @@
       <button onclick="openDaily()">Daily work summary</button><button onclick="loadAll()">Refresh</button>
       <button class="ghost" onclick="signOut()">Sign out</button></div>
   </header>
+    <div class="kpibar">
+      <div class="rangeLbl" id="rangeLbl"></div>
+      <div class="kpis" id="kpis"></div>
+    </div>
+  </div>
   <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily work summary</h2><button class="dmodal-x" onclick="closeDaily()">Close</button></div><div class="dmodal-ctrl"><select id="dailyPerson"><option value="">All staff</option><option value="Rachel">Rachel</option><option value="Amy">Amy</option></select><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a person and date.</div></div></div></div>
   <div class="wrap">
-    <div class="rangeLbl" id="rangeLbl"></div>
-    <div class="kpis" id="kpis"></div>
 
     <div class="grid">
       <div class="card" id="agentsCard"><h2>Calls & texts per employee</h2><p class="hint">Calls &amp; texts split by direction (out / in) · connected &amp; voicemail · per agent</p><canvas id="cAgents"></canvas></div>
