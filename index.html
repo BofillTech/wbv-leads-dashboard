@@ -106,6 +106,9 @@
   .rstat-v{font-size:20px;font-weight:700;color:var(--ink)}
   .rstat-l{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-top:2px}
   .rstat-s{font-size:11px;color:var(--muted);margin-top:2px}
+  .rstat.sf{cursor:pointer;transition:box-shadow .1s ease,background .1s ease}
+  .rstat.sf:hover{background:#eef7f6}
+  .rstat.sf-on{background:#e5f4f3;outline:2px solid var(--teal);outline-offset:-2px}
   .note-cell .clamp{max-height:3.4em;overflow:hidden;white-space:pre-wrap;position:relative;max-width:520px;overflow-wrap:anywhere;word-break:break-word}
   .note-cell.expanded .clamp{max-height:none}
   .note-cell:not(.expanded) .clamp::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1.2em;background:linear-gradient(transparent,var(--card))}
@@ -193,7 +196,7 @@
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card full" id="socialCard">
-      <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments received vs replied · list of comments still needing a reply</p></div></div>
+      <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments received vs replied · tap a tile to filter · list of comments still needing a reply</p></div></div>
       <div id="socialWrap"></div>
     </div>
     <div class="card full">
@@ -222,6 +225,7 @@ const PUBLISHABLE_KEY="sb_publishable_cly2dzYEaEPkgS760hz8SA_BBbe_mtG";
 const SS_KEY="wbv_session";
 const C={teal:"#1f9c98",teal2:"#2bb3b0",sand:"#e0b667",coral:"#e07a5f",muted:"#9bb0bb"};
 let charts={};
+let _soc={sum:[],un:[],filter:'all'};
 const session=()=>{try{return JSON.parse(localStorage.getItem(SS_KEY));}catch(e){return null;}};
 const setSession=s=>localStorage.setItem(SS_KEY,JSON.stringify(s));
 const clearSession=()=>localStorage.removeItem(SS_KEY);
@@ -329,24 +333,30 @@ function nbTable(rows){
    +'</tbody></table>';
 }
 
-function renderSocial(sum,un){
-  sum=sum||[]; un=un||[];
+function renderSocial(sum,un){ _soc.sum=sum||[]; _soc.un=un||[]; _soc.filter='all'; drawSocial(); }
+function setSocialFilter(f){ _soc.filter=(_soc.filter===f?'all':f); drawSocial(); }
+function drawSocial(){
+  var sum=_soc.sum||[], un=_soc.un||[], f=_soc.filter||'all';
   var el=document.getElementById('socialWrap'); if(!el) return;
   var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};
   var tot={received:0,answered:0,awaiting:0}, byp={};
   sum.forEach(function(r){tot.received+=+r.received;tot.answered+=+r.answered;tot.awaiting+=+r.awaiting;var p=r.platform;byp[p]=byp[p]||{received:0,answered:0,awaiting:0};byp[p].received+=+r.received;byp[p].answered+=+r.answered;byp[p].awaiting+=+r.awaiting;});
   var pct=tot.received?Math.round(100*tot.answered/tot.received):0;
+  function tile(sf,label,v,sub){var isf=!!sf;var on=(isf&&sf===f)?' sf-on':'';return '<div class="rstat'+(isf?' sf':'')+on+'"'+(isf?' data-sf="'+sf+'"':'')+'><div class="rstat-v">'+v+'</div><div class="rstat-l">'+label+'</div>'+(sub?'<div class="rstat-s">'+sub+'</div>':'')+'</div>';}
   var head='<div class="rstats">'
-    +'<div class="rstat"><div class="rstat-v">'+tot.received+'</div><div class="rstat-l">Comments received</div></div>'
-    +'<div class="rstat"><div class="rstat-v">'+tot.answered+'</div><div class="rstat-l">Replied</div><div class="rstat-s">'+pct+'% coverage</div></div>'
-    +'<div class="rstat"><div class="rstat-v">'+tot.awaiting+'</div><div class="rstat-l">Awaiting reply</div></div>';
-  [['instagram','Instagram'],['facebook','Facebook']].forEach(function(pp){var p=pp[0];if(byp[p]){var b=byp[p];head+='<div class="rstat"><div class="rstat-v">'+b.received+'</div><div class="rstat-l">'+pp[1]+'</div><div class="rstat-s">'+b.answered+' replied · '+b.awaiting+' awaiting</div></div>';}});
-  head+='</div>';
+    +tile('all','Comments received',tot.received,f==='all'?'showing all':'show all')
+    +tile(null,'Replied',tot.answered,pct+'% coverage')
+    +tile(null,'Awaiting reply',tot.awaiting,'')
+    +(byp.instagram?tile('instagram','Instagram',byp.instagram.received,byp.instagram.answered+' replied · '+byp.instagram.awaiting+' awaiting'):'')
+    +(byp.facebook?tile('facebook','Facebook',byp.facebook.received,byp.facebook.answered+' replied · '+byp.facebook.awaiting+' awaiting'):'')
+    +'</div>';
+  var rows=un.filter(function(r){return f==='all'||r.platform===f;});
   var body;
-  if(!un.length){ body='<div class="empty">All caught up — no comments awaiting a reply in this range.</div>'; }
+  if(!rows.length){ body='<div class="empty">All caught up — no '+(f==='all'?'':cap(f)+' ')+'comments awaiting a reply in this range.</div>'; }
   else{
-    body='<h4 style="margin:14px 0 6px;font-size:13px">Awaiting reply ('+un.length+')</h4><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Platform</th><th>Comment</th><th>Post</th><th></th></tr></thead><tbody>'
-     +un.map(function(r){
+    var lbl='Awaiting reply ('+rows.length+')'+(f==='all'?'':' · '+cap(f));
+    body='<h4 style="margin:14px 0 6px;font-size:13px">'+lbl+'</h4><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Platform</th><th>Comment</th><th>Post</th><th></th></tr></thead><tbody>'
+     +rows.map(function(r){
         var when=r.occurred_at?new Date(r.occurred_at).toLocaleString():'';
         var link=r.permalink?'<a href="'+esc(r.permalink)+'" target="_blank" rel="noopener">open</a>':'';
         var btn=(r.platform==='instagram')?'<button class="dbtn" style="padding:5px 10px" onclick="replySocial(\''+r.platform+'\',\''+esc(r.comment_id)+'\')">Reply</button>':'<span class="hint">reply in app</span>';
@@ -355,6 +365,7 @@ function renderSocial(sum,un){
   }
   el.innerHTML=head+body;
 }
+document.addEventListener('click',function(e){var t=e.target.closest?e.target.closest('#socialWrap .rstat.sf[data-sf]'):null; if(!t)return; setSocialFilter(t.getAttribute('data-sf'));});
 async function replySocial(platform,cid){
   var txt=prompt('Reply to this '+platform+' comment:');
   if(!txt) return;
