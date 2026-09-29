@@ -48,6 +48,16 @@
   .kpi .l{color:var(--muted);font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
   .kpi .sub{font-size:11px;color:var(--muted);margin-top:5px}
   .kpi.social{border-left-color:#c13584}
+  .kpi[data-scroll]{cursor:pointer;transition:transform .1s ease,box-shadow .1s ease}
+  .kpi[data-scroll]:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,34,48,.12)}
+  .kpi[data-scroll]:active{transform:translateY(0)}
+  .kpi[data-scroll]::after{content:"›";position:absolute;top:10px;right:12px;color:var(--muted);font-size:16px;opacity:0;transition:opacity .1s ease}
+  .kpi[data-scroll]{position:relative}
+  .kpi[data-scroll]:hover::after{opacity:.6}
+  @keyframes kpiflash{0%{box-shadow:0 0 0 0 rgba(31,156,152,.5)}100%{box-shadow:0 0 0 12px rgba(31,156,152,0)}}
+  .flash-target{animation:kpiflash .9s ease-out}
+  .card{scroll-margin-top:18px}
+  .tiersCard,#tiersCard{scroll-margin-top:18px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 22px}
   .card h2{font-size:14px;margin:0 0 3px;font-weight:700}
@@ -145,18 +155,18 @@
     <div class="kpis" id="kpis"></div>
 
     <div class="grid">
+      <div class="card" id="agentsCard"><h2>Calls & texts per employee</h2><p class="hint">Calls &amp; texts split by direction (out / in) · connected &amp; voicemail · per agent</p><canvas id="cAgents"></canvas></div>
+      <div class="card" id="emailCard"><h2>Email intent &amp; type</h2><p class="hint">info@ inbox · intent (top) + lead type (bottom)</p><canvas id="cEmail"></canvas><div class="hint" style="text-align:center;margin:10px 0 2px">By lead type — new / existing lead / customer</div><canvas id="cEmailType"></canvas></div>
+    </div>
+
+    <div class="grid">
       <div class="card"><h2>Inquiries by channel</h2><p class="hint">Shaded by lead type — new lead / existing lead / existing customer</p><canvas id="cInq"></canvas></div>
       <div class="card"><h2>Conversion funnel by channel</h2><p class="hint">Inquiry → followed-up → booked</p><canvas id="cFunnel"></canvas></div>
     </div>
 
     <div class="grid">
-      <div class="card"><h2>Calls & texts per employee</h2><p class="hint">Calls &amp; texts split by direction (out / in) · connected &amp; voicemail · per agent</p><canvas id="cAgents"></canvas></div>
-      <div class="card"><h2>Email intent &amp; type</h2><p class="hint">info@ inbox · intent (top) + lead type (bottom)</p><canvas id="cEmail"></canvas><div class="hint" style="text-align:center;margin:10px 0 2px">By lead type — new / existing lead / customer</div><canvas id="cEmailType"></canvas></div>
-    </div>
-
-    <div class="grid">
-      <div class="card"><h2>1-800 inbound vs outbound</h2><p class="hint">SignalWire calls on the reservations line · feed runs ~1 day behind</p><canvas id="cInbound"></canvas></div>
-      <div class="card"><h2>Bookings: online vs PMS</h2><p class="hint">Cloudbeds — status split + new vs returning guests</p><div id="bsWrap"><canvas id="cBook"></canvas></div></div>
+      <div class="card" id="inboundCard"><h2>1-800 inbound vs outbound</h2><p class="hint">SignalWire calls on the reservations line · feed runs ~1 day behind</p><canvas id="cInbound"></canvas></div>
+      <div class="card" id="bookCard"><h2>Bookings: online vs PMS</h2><p class="hint">Cloudbeds — status split + new vs returning guests</p><div id="bsWrap"><canvas id="cBook"></canvas></div></div>
     </div>
 
     <div class="grid">
@@ -169,11 +179,11 @@
       <div id="tiersWrap"></div>
     </div>
 
-    <div class="card full">
+    <div class="card full" id="leadsCard">
       <div class="lead-head"><h2 style="margin:0">High-intent leads</h2><div class="leadfilter" id="leadFilter"><button class="lf on" data-f=""><span>All</span><b class="lf-n"></b></button><button class="lf" data-f="phone"><span>Phone</span><b class="lf-n"></b></button><button class="lf" data-f="email"><span>Email</span><b class="lf-n"></b></button><button class="lf" data-f="form"><span>Website form</span><b class="lf-n"></b></button><button class="lf" data-f="social"><span>Social</span><b class="lf-n"></b></button><button class="lf" data-f="text"><span>Text</span><b class="lf-n"></b></button></div></div><p class="hint">Hot & warm prospects with contact details — visible to signed-in staff only</p>
       <div id="leadsWrap"><table id="leadsTbl"><thead><tr><th>Name</th><th>Intent</th><th>Type</th><th>Channels</th><th>Email</th><th>Phone</th><th>Last touch</th><th>Note</th></tr></thead><tbody></tbody></table></div>
     </div>
-    <div class="card full">
+    <div class="card full" id="socialCard">
       <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments received vs replied · list of comments still needing a reply</p></div></div>
       <div id="socialWrap"></div>
     </div>
@@ -262,17 +272,24 @@ const money=n=>"$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigit
 const fmtDate=d=>d?new Date(d).toLocaleDateString():"";
 
 function kpiCards(k){
-  const cards=[["Inquiries",(k.total_inquiries||0)],["Hot leads",(k.hot_leads||0)],["Calls connected",(k.cold_calls||0)],["Texts sent",(k.texts_sent||0)],
-    ["Inbound 1-800",(k.inbound_1800||0)],["Emails",(k.emails||0)],["Booking value",money(k.booked_value)]];
-  document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi"><div class="v">${c[1].toLocaleString?c[1].toLocaleString():c[1]}</div><div class="l">${c[0]}</div></div>`).join("");
+  const cards=[["Inquiries",(k.total_inquiries||0),"tiersCard"],["Hot leads",(k.hot_leads||0),"leadsCard"],["Calls connected",(k.cold_calls||0),"agentsCard"],["Texts sent",(k.texts_sent||0),"agentsCard"],
+    ["Inbound 1-800",(k.inbound_1800||0),"inboundCard"],["Emails",(k.emails||0),"emailCard"],["Booking value",money(k.booked_value),"bookCard"]];
+  document.getElementById("kpis").innerHTML=cards.map(c=>`<div class="kpi" data-scroll="${c[2]}"><div class="v">${c[1].toLocaleString?c[1].toLocaleString():c[1]}</div><div class="l">${c[0]}</div></div>`).join("");
 }
 function appendSocialKpis(sum){
   sum=sum||[]; var byp={instagram:{r:0,a:0,w:0},facebook:{r:0,a:0,w:0}};
   sum.forEach(function(x){var p=byp[x.platform]; if(p){p.r+=+x.received;p.a+=+x.answered;p.w+=+x.awaiting;}});
   var k=document.getElementById('kpis'); if(!k) return;
-  function card(label,b){return '<div class="kpi social"><div class="v">'+b.r+'</div><div class="l">'+label+'</div><div class="sub">'+b.a+' replied · '+b.w+' awaiting</div></div>';}
+  function card(label,b){return '<div class="kpi social" data-scroll="socialCard"><div class="v">'+b.r+'</div><div class="l">'+label+'</div><div class="sub">'+b.a+' replied · '+b.w+' awaiting</div></div>';}
   k.insertAdjacentHTML('beforeend', card('Facebook comments',byp.facebook)+card('Instagram comments',byp.instagram));
 }
+// KPI tile → scroll to matching section
+document.addEventListener('click',function(e){
+  var t=e.target.closest?e.target.closest('.kpi[data-scroll]'):null; if(!t)return;
+  var id=t.getAttribute('data-scroll'); var el=document.getElementById(id); if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('flash-target'); void el.offsetWidth; el.classList.add('flash-target');
+});
 function bar(id,labels,ds,horizontal,stacked){
   if(charts[id])charts[id].destroy();
   charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:ds},
