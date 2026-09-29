@@ -479,7 +479,7 @@ function money2(n){return '$'+(Number(n)||0).toLocaleString(undefined,{minimumFr
 function renderWorkSummary(ws){
   if(!ws||typeof ws!=='object'||ws.code) return '';
   var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};
-  var p=ws.payments||{items:[],total:0,count:0}; var c=ws.comms||{}; var sh=ws.shared||{};
+  var p=ws.payments||{items:[],total:0,count:0}; var c=ws.comms||{}; var sh=ws.shared||{}; var so=ws.social||null;
   var pitems=(p.items||[]).map(function(it){return '<tr><td>'+esc(it.guest||'—')+'</td><td style="text-transform:capitalize">'+esc(it.method||'')+'</td><td class="num">'+money2(it.amount)+'</td></tr>';}).join('');
   var payTbl=(p.count? '<table class="dtable"><thead><tr><th>Guest</th><th>Method</th><th>Amount</th></tr></thead><tbody>'+pitems+'</tbody></table>':'<div class="hint">No payments recorded this day.</div>');
   var comms='<div class="dstat-row">'
@@ -490,6 +490,7 @@ function renderWorkSummary(ws){
     +'<div class="dstat"><b>'+(c.calls_incoming||0)+'</b><span>inbound calls</span></div>'
     +'<div class="dstat"><b>'+(c.voicemail||0)+'</b><span>voicemail</span></div>'
     +'</div>';
+  var socLine = so ? '<div class="hint" style="margin:2px 0 14px">Social comments: '+(so.received||0)+' received · '+(so.replied||0)+' replied · '+(so.awaiting||0)+' awaiting  (IG '+(so.ig_replied||0)+'/'+(so.ig_received||0)+' · FB '+(so.fb_replied||0)+'/'+(so.fb_received||0)+') · company-wide</div>' : '';
   return '<h3 style="margin:2px 0 8px;font-size:15px">'+esc(ws.person)+' · '+esc(ws.day)+'</h3>'
     +'<div style="font-size:24px;font-weight:700;color:var(--teal);line-height:1.1">'+money2(p.total)+'</div>'
     +'<div class="hint" style="margin:0 0 8px">Payments collected ('+(p.count||0)+') · company-wide, not split by staff</div>'
@@ -497,6 +498,7 @@ function renderWorkSummary(ws){
     +'<h4 style="margin:18px 0 6px;font-size:13px">Calls, texts &amp; communication'+((ws.person&&ws.person!=='All staff')?' — '+esc(ws.person):'')+'</h4>'
     +comms
     +'<div class="hint" style="margin:2px 0 14px">Shared lines &amp; inbox: '+(sh.inbound_1800||0)+' inbound 1-800 call'+((sh.inbound_1800==1)?'':'s')+' · '+(sh.emails_all||0)+' emails in info@ (not split by person)</div>'
+    +socLine
     +'<h4 style="margin:16px 0 4px;font-size:13px">Leads that day</h4>';
 }
 async function runDaily(){
