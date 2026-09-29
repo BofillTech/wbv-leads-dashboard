@@ -499,6 +499,7 @@ function renderWorkSummary(ws){
     +'<div class="dstat"><b>'+(c.calls_connected||0)+'</b><span>connected</span></div>'
     +'<div class="dstat"><b>'+(c.calls_incoming||0)+'</b><span>inbound calls</span></div>'
     +'<div class="dstat"><b>'+(c.voicemail||0)+'</b><span>voicemail</span></div>'
+    +(so?'<div class="dstat" style="border-color:#c13584"><b>'+(so.received||0)+'</b><span>social comments</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+(so.replied||0)+' replied · '+(so.awaiting||0)+' awaiting</div></div>':'')
     +'</div>';
   var socLine = so ? '<div class="hint" style="margin:2px 0 14px">Social comments: '+(so.received||0)+' received · '+(so.replied||0)+' replied · '+(so.awaiting||0)+' awaiting  (IG '+(so.ig_replied||0)+'/'+(so.ig_received||0)+' · FB '+(so.fb_replied||0)+'/'+(so.fb_received||0)+') · company-wide</div>' : '';
   return '<h3 style="margin:2px 0 8px;font-size:15px">'+esc(ws.person)+' · '+esc(ws.day)+'</h3>'
