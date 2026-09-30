@@ -166,7 +166,7 @@
       <div class="kpis" id="kpis"></div>
     </div>
   </div>
-  <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily work summary</h2><button class="dmodal-x" onclick="closeDaily()">Close</button></div><div class="dmodal-ctrl"><select id="dailyPerson"><option value="">All staff</option><option value="Rachel">Rachel</option><option value="Amy">Amy</option></select><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a person and date.</div></div></div></div>
+  <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily work summary</h2><div style="display:flex;gap:8px;align-items:center"><span id="copyMsg" style="font-size:12px;color:var(--teal);display:none">Copied!</span><button class="dbtn" onclick="copyDaily()">Copy summary</button><button class="dmodal-x" onclick="closeDaily()">Close</button></div></div><div class="dmodal-ctrl"><select id="dailyPerson"><option value="">All staff</option><option value="Rachel">Rachel</option><option value="Amy">Amy</option></select><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a person and date.</div></div></div></div>
   <div class="wrap">
 
     <div class="grid">
@@ -538,6 +538,14 @@ document.addEventListener('click',e=>{const c=e.target.closest('.note-cell');if(
     });
 function openDaily(){var m=document.getElementById('dailyModal');var di=document.getElementById('dailyDate');if(!di.value){var y=new Date(Date.now()-864e5);di.value=y.toISOString().slice(0,10);}m.classList.add('show');runDaily();}
 function closeDaily(){document.getElementById('dailyModal').classList.remove('show');}
+function fallbackCopy(t,cb){try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');document.body.removeChild(ta);cb&&cb(true);}catch(e){cb&&cb(false);}}
+function copyDaily(){
+  var b=document.getElementById('dailyBody'); if(!b) return;
+  var t=(b.innerText||b.textContent||'').replace(/\n{3,}/g,'\n\n').trim();
+  function done(ok){var m=document.getElementById('copyMsg');if(m){m.textContent=ok?'Copied!':'Copy failed';m.style.color=ok?'var(--teal)':'var(--coral)';m.style.display='inline';setTimeout(function(){m.style.display='none';},1600);}}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){done(true);},function(){fallbackCopy(t,done);});}
+  else{fallbackCopy(t,done);}
+}
 function money2(n){return '$'+(Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 function renderWorkSummary(ws){
   if(!ws||typeof ws!=='object'||ws.code) return '';
