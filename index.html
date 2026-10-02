@@ -305,6 +305,11 @@ function appendPaymentsKpi(paysum){
   var v=Math.round(ps.payments_collected||0);
   k.insertAdjacentHTML('beforeend','<div class="kpi money" data-scroll="resvCard"><div class="v">$'+v.toLocaleString()+'</div><div class="l">Payments taken in</div><div class="sub">'+(ps.payments_count||0)+' payments · collected</div></div>');
 }
+function appendCallMinKpis(cm){
+  var x=(cm&&cm[0])||{}; var k=document.getElementById('kpis'); if(!k) return;
+  function card(label,v,color){return '<div class="kpi" style="border-left-color:'+color+'" data-scroll="agentsCard"><div class="v">'+(Number(v)||0).toLocaleString()+'m</div><div class="l">'+label+'</div></div>';}
+  k.insertAdjacentHTML('beforeend', card('Call min · incoming',x.incoming_min,'#2bb3b0')+card('Call min · outgoing',x.outgoing_min,'#e07a5f'));
+}
 // KPI tile → scroll to matching section
 document.addEventListener('click',function(e){
   var t=e.target.closest?e.target.closest('.kpi[data-scroll]'):null; if(!t)return;
@@ -455,14 +460,15 @@ async function nbFetchAll(){
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist,callmin]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list"),rpc("f_call_minutes")
     ]);
     kpiCards(kpiA[0]||{});
     appendSocialKpis(scomm);
     appendPaymentsKpi(paysum);
+    appendCallMinKpis(callmin);
     renderResv(pipeline,ancillary,bactivity,paysum);
     renderHours(ahours);
     renderSplit(tsplit);
@@ -560,6 +566,8 @@ function renderWorkSummary(ws){
     +'<div class="dstat"><b>'+(c.calls_connected||0)+'</b><span>connected</span></div>'
     +'<div class="dstat"><b>'+(c.calls_incoming||0)+'</b><span>inbound calls</span></div>'
     +'<div class="dstat"><b>'+(c.voicemail||0)+'</b><span>voicemail</span></div>'
+    +'<div class="dstat" style="border-color:#2bb3b0"><b>'+(c.call_min_in||0)+'m</b><span>call min · incoming</span></div>'
+    +'<div class="dstat" style="border-color:#e07a5f"><b>'+(c.call_min_out||0)+'m</b><span>call min · outgoing</span></div>'
     +(so?'<div class="dstat" style="border-color:#c13584"><b>'+(so.received||0)+'</b><span>social comments</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+(so.replied||0)+' replied · '+(so.awaiting||0)+' awaiting</div></div>':'')
     +'</div>';
   var socLine = so ? '<div class="hint" style="margin:2px 0 14px">Social comments: '+(so.received||0)+' received · '+(so.replied||0)+' replied · '+(so.awaiting||0)+' awaiting  (IG '+(so.ig_replied||0)+'/'+(so.ig_received||0)+' · FB '+(so.fb_replied||0)+'/'+(so.fb_received||0)+') · company-wide</div>' : '';
@@ -581,6 +589,7 @@ async function runDaily(){
     var s=session();var hdr={apikey:PUBLISHABLE_KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'};
     var wsR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_work_summary',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d,p_person:person})});
     var ws=await wsR.json();
+    try{var cmR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_call_minutes',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d,p_person:person})});var cm=await cmR.json();var cmo=(Array.isArray(cm)?cm[0]:cm)||{};if(ws&&ws.comms){ws.comms.call_min_in=cmo.incoming_min||0;ws.comms.call_min_out=cmo.outgoing_min||0;}}catch(_){}
     var lR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_leads',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d})});
     var rows=await lR.json();
     body.innerHTML=renderWorkSummary(ws)+renderDaily(d,rows);
