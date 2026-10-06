@@ -202,6 +202,10 @@
       <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments · received vs replied · tap a tile to filter the list below</p></div></div>
       <div id="socialWrap"></div>
     </div>
+    <div class="card full" id="outboundCard">
+      <div class="lead-head"><div><h2 style="margin:0">Outbound effectiveness</h2><p class="hint" style="margin:2px 0 0">Did outgoing calls &amp; texts turn into bookings? A booking counts for an employee when they called or texted that guest <b>before</b> the booking was made, within 90 days. Confirmed bookings only · uses the date range above for the outreach window.</p></div></div>
+      <div id="outboundWrap"></div>
+    </div>
     <div class="card full">
       <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
       <div id="nbWrap"></div></div>
@@ -457,13 +461,29 @@ async function nbFetchAll(){
   }
   return out;
 }
+function renderOutbound(rows){
+  var w=document.getElementById("outboundWrap"); if(!w) return;
+  var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};
+  rows=rows||[];
+  if(!rows.length){ w.innerHTML='<div class="empty">No outbound calls or texts in this range.</div>'; return; }
+  var pri={Rachel:0,Amy:1};
+  rows=rows.slice().sort(function(a,b){var pa=(a.agent in pri)?pri[a.agent]:5,pb=(b.agent in pri)?pri[b.agent]:5;if(pa!==pb)return pa-pb;return ((b.out_calls||0)+(b.out_texts||0))-((a.out_calls||0)+(a.out_texts||0));});
+  var h='<table id="outTbl"><thead><tr><th>Employee</th><th>Calls out</th><th>Texts out</th><th>Emails out</th><th>People reached</th><th>Bookings won</th><th>Conv. rate</th><th>Value won</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var reached=r.contacts_touched||0, won=r.contacts_converted||0;
+    var rate=reached?(100*won/reached):0;
+    h+='<tr><td><b>'+esc(r.agent||'?')+'</b></td><td>'+(r.out_calls||0).toLocaleString()+'</td><td>'+(r.out_texts||0).toLocaleString()+'</td><td>'+(r.out_emails||0).toLocaleString()+'</td><td>'+reached.toLocaleString()+'</td><td><b>'+(r.bookings_won||0)+'</b></td><td>'+rate.toFixed(1)+'%</td><td>'+money(r.value_won)+'</td></tr>';
+  });
+  h+='</tbody></table><p class="hint" style="margin:8px 2px 0">\u201cPeople reached\u201d = distinct guests called or texted. \u201cBookings won\u201d = confirmed bookings where the outreach came first. Calls to guests who had already booked (logistics/service) are correctly excluded.</p>';
+  w.innerHTML=h;
+}
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist,callmin]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist,callmin,outeff]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list"),rpc("f_call_minutes")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list"),rpc("f_call_minutes"),rpc("f_outbound_effectiveness")
     ]);
     kpiCards(kpiA[0]||{});
     appendSocialKpis(scomm);
@@ -474,6 +494,7 @@ async function loadAll(){
     renderSplit(tsplit);
     renderStaffCoverage(staffcov);
     renderSocial(scomm,slist);
+    renderOutbound(outeff);
     renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
     {const ct=ctier||[];bar("cInq",ct.map(r=>cap(r.channel)),[{label:"New lead",data:ct.map(r=>r.new_lead),backgroundColor:C.teal,borderRadius:4,stack:"s"},{label:"Existing lead",data:ct.map(r=>r.existing_lead),backgroundColor:C.sand,borderRadius:4,stack:"s"},{label:"Existing customer",data:ct.map(r=>r.existing_customer),backgroundColor:C.coral,borderRadius:4,stack:"s"}],false,true);}
