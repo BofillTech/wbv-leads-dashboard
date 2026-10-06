@@ -60,7 +60,7 @@
 <div class="wrap">
   <div class="card">
     <h2>Summary</h2>
-    <p class="hint">A booking is credited to an employee when they called or texted that guest <b>before</b> it was booked, within 90 days. Confirmed bookings only. &ldquo;People reached&rdquo; = distinct guests called or texted; calls to guests who had already booked (logistics/service) are correctly excluded.</p>
+    <p class="hint">A booking is credited to an employee when they called or texted that guest <b>before</b> it was booked, within 90 days. Confirmed bookings only. &ldquo;People reached&rdquo; = distinct guests called or texted; calls to guests who had already booked (logistics/service) are correctly excluded. <b>Cold-calling only</b> — outgoing calls/texts, never inbound 1-800 calls. Bookings a guest actually sourced themselves (called the 1-800 or came from the website) are removed after team review.</p>
     <div id="outSummary"><div class="hint">Loading…</div></div>
   </div>
   <div class="card">
@@ -130,9 +130,9 @@ function renderDetail(rows){
   var pri={Rachel:0,Amy:1};
   rows=rows.slice().sort(function(a,b){var pa=(a.agent in pri)?pri[a.agent]:5,pb=(b.agent in pri)?pri[b.agent]:5;if(pa!==pb)return pa-pb;return (b.value||0)-(a.value||0);});
   var tot=rows.reduce(function(s,r){return s+(Number(r.value)||0);},0);
-  var h='<table><thead><tr><th>Employee</th><th>Guest</th><th>Email</th><th>Phone</th><th>Booked</th><th>Check-in</th><th>Nights</th><th>Value</th><th>Won via</th><th>Days before booking</th></tr></thead><tbody>';
+  var h='<table><thead><tr><th>Employee</th><th>Guest</th><th>Email</th><th>Phone</th><th>Booked</th><th>Check-in</th><th>Nights</th><th>Value</th><th>Won via</th><th>Days before booking</th><th>Review</th></tr></thead><tbody>';
   rows.forEach(function(r){
-    h+='<tr><td><b>'+esc(r.agent||'?')+'</b></td><td>'+esc(r.guest_name||'—')+'</td><td>'+esc(r.email||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+fmtDate(r.reservation_date)+'</td><td>'+fmtDate(r.check_in)+'</td><td>'+(r.nights!=null?r.nights:'')+'</td><td>'+money(r.value)+'</td><td>'+esc(r.touch_channel||'')+'</td><td>'+(r.days_to_book!=null?r.days_to_book:'')+'</td></tr>';
+    h+='<tr><td><b>'+esc(r.agent||'?')+'</b></td><td>'+esc(r.guest_name||'—')+'</td><td>'+esc(r.email||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+fmtDate(r.reservation_date)+'</td><td>'+fmtDate(r.check_in)+'</td><td>'+(r.nights!=null?r.nights:'')+'</td><td>'+money(r.value)+'</td><td>'+esc(r.touch_channel||'')+'</td><td>'+(r.days_to_book!=null?r.days_to_book:'')+'</td><td style="color:var(--coral);font-size:12px">'+esc(r.flag||'')+'</td></tr>';
   });
   h+='</tbody></table><p class="hint" style="margin:8px 2px 0">'+rows.length+' booking'+(rows.length===1?'':'s')+' · '+money(tot)+' total value credited.</p>';
   w.innerHTML=h;
