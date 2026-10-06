@@ -158,7 +158,7 @@
         </span>
       </div>
       <span id="updated">Loading…</span>
-      <button onclick="openDaily()">Daily work summary</button><button onclick="loadAll()">Refresh</button>
+      <button onclick="openOutbound()">Outbound effectiveness</button><button onclick="openDaily()">Daily work summary</button><button onclick="loadAll()">Refresh</button>
       <button class="ghost" onclick="signOut()">Sign out</button>
     </div>
   </header>
@@ -167,6 +167,7 @@
     </div>
   </div>
   <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily work summary</h2><div style="display:flex;gap:8px;align-items:center"><span id="copyMsg" style="font-size:12px;color:var(--teal);display:none">Copied!</span><button class="dbtn" onclick="copyDaily()">Copy summary</button><button class="dmodal-x" onclick="closeDaily()">Close</button></div></div><div class="dmodal-ctrl"><select id="dailyPerson"><option value="">All staff</option><option value="Rachel">Rachel</option><option value="Amy">Amy</option></select><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a person and date.</div></div></div></div>
+  <div id="outboundModal" class="dmodal"><div class="dmodal-box" style="max-width:1120px"><div class="dmodal-head"><div><h2 style="margin:0;font-size:17px">Outbound effectiveness</h2><p class="hint" style="margin:3px 0 0">Did outgoing calls &amp; texts turn into bookings? A booking is credited to an employee when they called or texted that guest <b>before</b> it was booked, within 90 days. Confirmed bookings only · uses the date range selected on the dashboard.</p></div><button class="dmodal-x" onclick="closeOutbound()">Close</button></div><div id="outSummary"><div class="hint">Loading…</div></div><h2 style="font-size:15px;margin:20px 0 2px">Bookings won — detail</h2><p class="hint" style="margin:0 0 8px">Every confirmed booking credited above: the guest, their contact details, value, which outreach came first, and how many days before the booking it landed.</p><div id="outDetail"></div></div></div>
   <div class="wrap">
 
     <div class="grid">
@@ -201,10 +202,6 @@
     <div class="card full" id="socialCard">
       <div class="lead-head"><div><h2 style="margin:0">Social comments</h2><p class="hint" style="margin:2px 0 0">Facebook &amp; Instagram comments · received vs replied · tap a tile to filter the list below</p></div></div>
       <div id="socialWrap"></div>
-    </div>
-    <div class="card full" id="outboundCard">
-      <div class="lead-head"><div><h2 style="margin:0">Outbound effectiveness</h2><p class="hint" style="margin:2px 0 0">Did outgoing calls &amp; texts turn into bookings? A booking counts for an employee when they called or texted that guest <b>before</b> the booking was made, within 90 days. Confirmed bookings only · uses the date range above for the outreach window.</p></div></div>
-      <div id="outboundWrap"></div>
     </div>
     <div class="card full">
       <h2>New-booking inquiries — every call &amp; email</h2><p class="hint" id="nbCount"></p>
@@ -461,8 +458,8 @@ async function nbFetchAll(){
   }
   return out;
 }
-function renderOutbound(rows){
-  var w=document.getElementById("outboundWrap"); if(!w) return;
+function renderOutbound(rows,elId){
+  var w=document.getElementById(elId||"outboundWrap"); if(!w) return;
   var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};
   rows=rows||[];
   if(!rows.length){ w.innerHTML='<div class="empty">No outbound calls or texts in this range.</div>'; return; }
@@ -477,13 +474,39 @@ function renderOutbound(rows){
   h+='</tbody></table><p class="hint" style="margin:8px 2px 0">\u201cPeople reached\u201d = distinct guests called or texted. \u201cBookings won\u201d = confirmed bookings where the outreach came first. Calls to guests who had already booked (logistics/service) are correctly excluded.</p>';
   w.innerHTML=h;
 }
+function renderOutboundDetail(rows,elId){
+  var w=document.getElementById(elId); if(!w) return;
+  var esc=function(x){return String(x==null?'':x).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;');});};
+  rows=rows||[];
+  if(!rows.length){ w.innerHTML='<div class="empty">No bookings attributed to outbound outreach in this range.</div>'; return; }
+  var pri={Rachel:0,Amy:1};
+  rows=rows.slice().sort(function(a,b){var pa=(a.agent in pri)?pri[a.agent]:5,pb=(b.agent in pri)?pri[b.agent]:5;if(pa!==pb)return pa-pb;return (b.value||0)-(a.value||0);});
+  var tot=rows.reduce(function(s,r){return s+(Number(r.value)||0);},0);
+  var h='<table id="outDetailTbl"><thead><tr><th>Employee</th><th>Guest</th><th>Email</th><th>Phone</th><th>Booked</th><th>Check-in</th><th>Nights</th><th>Value</th><th>Won via</th><th>Days before booking</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr><td><b>'+esc(r.agent||'?')+'</b></td><td>'+esc(r.guest_name||'\u2014')+'</td><td>'+esc(r.email||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+fmtDate(r.reservation_date)+'</td><td>'+fmtDate(r.check_in)+'</td><td>'+(r.nights!=null?r.nights:'')+'</td><td>'+money(r.value)+'</td><td>'+esc(r.touch_channel||'')+'</td><td>'+(r.days_to_book!=null?r.days_to_book:'')+'</td></tr>';
+  });
+  h+='</tbody></table><p class="hint" style="margin:8px 2px 0">'+rows.length+' booking'+(rows.length===1?'':'s')+' \u00b7 '+money(tot)+' total value credited. A booking a guest made after being reached by two people shows once per person.</p>';
+  w.innerHTML=h;
+}
+async function openOutbound(){
+  var m=document.getElementById('outboundModal'); m.classList.add('show');
+  document.getElementById('outSummary').innerHTML='<div class="hint">Loading\u2026</div>';
+  document.getElementById('outDetail').innerHTML='';
+  try{
+    var res=await Promise.all([rpc('f_outbound_effectiveness'),rpc('f_outbound_bookings')]);
+    renderOutbound(res[0],'outSummary');
+    renderOutboundDetail(res[1],'outDetail');
+  }catch(e){ document.getElementById('outSummary').innerHTML='<div class="empty">Could not load ('+(e&&e.message||e)+').</div>'; }
+}
+function closeOutbound(){document.getElementById('outboundModal').classList.remove('show');}
 async function loadAll(){
   document.getElementById("updated").textContent="Refreshing…";
   try{
-    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist,callmin,outeff]=await Promise.all([
+    const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist,callmin]=await Promise.all([
       rpc("f_kpis"),rpc("f_channel_funnel"),rpc("f_quo_agents"),rpc("f_email_intent"),
       rpc("f_inbound_1800"),rpc("f_booking_source"),rpc("f_booking_guest_type"),rpc("f_high_intent_leads"),rpc("f_res_split_calls"),rpc("f_res_split_email"),
-      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list"),rpc("f_call_minutes"),rpc("f_outbound_effectiveness")
+      rpc("f_booking_pipeline"),rpc("f_ancillary_revenue"),rpc("f_booking_activity"),rpc("f_agent_hours"),rpc("f_agent_time_split"),rpc("f_payments_summary"),rpc("f_lead_tiers"),rpc("f_channel_tier"),rpc("f_staff_coverage"),rpc("f_social_comments_summary"),rpc("f_social_comments_list"),rpc("f_call_minutes")
     ]);
     kpiCards(kpiA[0]||{});
     appendSocialKpis(scomm);
@@ -494,7 +517,6 @@ async function loadAll(){
     renderSplit(tsplit);
     renderStaffCoverage(staffcov);
     renderSocial(scomm,slist);
-    renderOutbound(outeff);
     renderTiers(tiers);
     const fl=funnel.map(r=>cap(r.channel));
     {const ct=ctier||[];bar("cInq",ct.map(r=>cap(r.channel)),[{label:"New lead",data:ct.map(r=>r.new_lead),backgroundColor:C.teal,borderRadius:4,stack:"s"},{label:"Existing lead",data:ct.map(r=>r.existing_lead),backgroundColor:C.sand,borderRadius:4,stack:"s"},{label:"Existing customer",data:ct.map(r=>r.existing_customer),backgroundColor:C.coral,borderRadius:4,stack:"s"}],false,true);}
