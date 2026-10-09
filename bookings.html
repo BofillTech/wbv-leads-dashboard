@@ -88,6 +88,10 @@
 <div class="wrap">
   <div class="statbar" id="statbar"></div>
   <div class="legend" id="legend"></div>
+  <div class="card" id="piecard" style="margin:0 0 14px;display:none;align-items:center;gap:30px;padding:12px 20px">
+    <div><div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);font-weight:600;margin-bottom:6px">Original touchpoint mix</div><svg id="pie" width="140" height="140" viewBox="0 0 150 150"></svg></div>
+    <div id="pielegend" style="font-size:12.5px"></div>
+  </div>
   <div class="card"><div id="list"><div class="empty">Loading…</div></div></div>
   <p class="hint muted" style="font-size:12px;margin:12px 4px">
     <b>Booked via</b> = Cloudbeds source (how they placed the booking). <b>Original touchpoint</b> = the first time this guest ever appeared in our system by phone or email — a cold call, a 1-800 call, a website inquiry — even if it was months before they booked. Click any row to see the full touchpoint timeline. Upcoming stays only (check-in today or later); filter is by when the booking was made.
@@ -143,16 +147,17 @@ var ICONS={
 function svg(name){return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px">'+(ICONS[name]||ICONS.dot)+'</svg>';}
 function touchKind(ch,via){
   ch=(ch||'').toLowerCase(); via=(via||'').toLowerCase();
+  if(ch==='web'||ch==='form'||ch==='website') return {label:'Website',color:'#3b7dd8',icon:'globe'};
+  if(ch==='phone'&&/grace/.test(via)) return {label:'AI agent',color:'#7a5cc0',icon:'phone'};
   if(ch==='phone'||/signalwire/.test(via)) return {label:'1-800',color:'#e07a5f',icon:'phonein'};
   if(ch==='call') return {label:'Call',color:'#1f9c98',icon:'phone'};
   if(ch==='text') return {label:'Text',color:'#2bb3b0',icon:'chat'};
   if(ch==='email') return {label:'Email',color:'#c79116',icon:'mail'};
-  if(ch==='form'||ch==='website') return {label:'Web form',color:'#3b7dd8',icon:'globe'};
   if(/social|instagram|facebook/.test(ch)) return {label:'Social',color:'#c13584',icon:'chat'};
   return {label:'Direct',color:'#9bb0bb',icon:'dot'};
 }
 function renderLegend(){
-  var items=[['phone','Call','#1f9c98'],['chat','Text','#2bb3b0'],['phonein','1-800','#e07a5f'],['mail','Email','#c79116'],['globe','Web form','#3b7dd8'],['dot','Direct / none','#9bb0bb']];
+  var items=[['phone','Call','#1f9c98'],['chat','Text','#2bb3b0'],['phonein','1-800','#e07a5f'],['mail','Email','#c79116'],['globe','Website','#3b7dd8'],['phone','AI agent','#7a5cc0'],['dot','Direct / none','#9bb0bb']];
   document.getElementById('legend').innerHTML='<span class="cap">Original touchpoint:</span>'+items.map(function(x){return '<span class="lg-t" style="color:'+x[2]+'">'+svg(x[0])+' '+x[1]+'</span>';}).join('');
 }
 function origCell(r){
@@ -174,6 +179,28 @@ function chipsCell(r){
   if(!c.length) c.push('<span class="chip">none tracked</span>');
   return '<div class="chips">'+c.join('')+'</div>';
 }
+function drawPie(rows){
+  var pc=document.getElementById('piecard');
+  var counts={};
+  (rows||[]).forEach(function(r){ var k=touchKind(r.first_touch_channel,r.first_touch_via); var key=(!r.first_touch_label)?'Direct':k.label; var col=(!r.first_touch_label)?'#9bb0bb':k.color; if(!counts[key])counts[key]={n:0,color:col}; counts[key].n++; });
+  var entries=Object.keys(counts).map(function(k){return {label:k,n:counts[k].n,color:counts[k].color};});
+  entries.sort(function(a,b){return b.n-a.n;});
+  var total=entries.reduce(function(s,e){return s+e.n;},0);
+  if(!total){ pc.style.display='none'; return; }
+  pc.style.display='flex';
+  var cx=75,cy=75,r=70,svg='';
+  if(entries.length===1){ svg='<circle cx="75" cy="75" r="70" fill="'+entries[0].color+'"/>'; }
+  else { var a0=-Math.PI/2;
+    entries.forEach(function(e){ var ang=e.n/total*2*Math.PI, a1=a0+ang;
+      var x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1),large=ang>Math.PI?1:0;
+      svg+='<path d="M'+cx+' '+cy+' L'+x0.toFixed(2)+' '+y0.toFixed(2)+' A'+r+' '+r+' 0 '+large+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+' Z" fill="'+e.color+'" stroke="#fff" stroke-width="1.5"/>';
+      a0=a1; });
+  }
+  document.getElementById('pie').innerHTML=svg;
+  document.getElementById('pielegend').innerHTML=entries.map(function(e){ var pct=Math.round(e.n/total*100);
+    return '<div style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:'+e.color+'"></span><b style="min-width:24px;display:inline-block">'+e.n+'</b><span>'+esc(e.label)+'</span><span class="g" style="margin-left:4px">'+pct+'%</span></div>';
+  }).join('');
+}
 function render(rows){
   var L=document.getElementById('list'); rows=rows||[];
   var sb=document.getElementById('statbar');
@@ -185,6 +212,7 @@ function render(rows){
     +'<div class="stat p"><b>'+pend+'</b><span>Pending</span></div>'
     +'<div class="stat m"><b>'+money(val)+'</b><span>Total value</span></div>'
     +'<div class="stat c"><b>'+(n-noTouch)+'</b><span>Have a prior touch</span></div>';
+  drawPie(rows);
   if(!n){ L.innerHTML='<div class="empty">No upcoming bookings made in this window.</div>'; return; }
   var h='<table><thead><tr><th>Guest</th><th>Status</th><th>Booked</th><th>Check-in</th><th>Nights</th><th>Value</th><th>Booked via</th><th>Original touchpoint</th><th>Touchpoints</th><th></th></tr></thead><tbody>';
   rows.forEach(function(r,i){
