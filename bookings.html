@@ -150,7 +150,7 @@ var ICONS={
 function svg(name){return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px">'+(ICONS[name]||ICONS.dot)+'</svg>';}
 function touchKind(ch,via){
   ch=(ch||'').toLowerCase(); via=(via||'').toLowerCase();
-  if(ch==='web'||ch==='form'||ch==='website') return {label:'Website',color:'#3b7dd8',icon:'globe'};
+  if(ch==='web'||ch==='form'||ch==='website') return {label:'Website form',color:'#3b7dd8',icon:'globe'};
   if(ch==='phone'&&/grace/.test(via)) return {label:'AI agent',color:'#7a5cc0',icon:'phone'};
   if(ch==='phone'||/signalwire/.test(via)) return {label:'1-800',color:'#e07a5f',icon:'phonein'};
   if(ch==='call') return {label:'Call',color:'#1f9c98',icon:'phone'};
@@ -160,12 +160,12 @@ function touchKind(ch,via){
   return {label:'Direct',color:'#9bb0bb',icon:'dot'};
 }
 function renderLegend(){
-  var items=[['phone','Call','#1f9c98'],['chat','Text','#2bb3b0'],['phonein','1-800','#e07a5f'],['mail','Email','#c79116'],['globe','Website','#3b7dd8'],['phone','AI agent','#7a5cc0'],['dot','Direct / website','#9bb0bb']];
+  var items=[['phone','Call','#1f9c98'],['chat','Text','#2bb3b0'],['phonein','1-800','#e07a5f'],['mail','Email','#c79116'],['globe','Website form','#3b7dd8'],['phone','AI agent','#7a5cc0'],['dot','Direct / Booking Engine','#9bb0bb']];
   document.getElementById('legend').innerHTML='<span class="cap">Original touchpoint:</span>'+items.map(function(x){return '<span class="lg-t" style="color:'+x[2]+'">'+svg(x[0])+' '+x[1]+'</span>';}).join('');
 }
 function origCell(r){
   var pcnote = r.prior_contact ? '<br><span class="g" style="color:#9a7417">'+(r.prior_contact==='guest'?'imported / returning guest — not a cold origin':'pre-existing imported lead')+'</span>' : '';
-  if(!r.first_touch_label){ return '<span class="tk" style="color:#9bb0bb">'+svg('dot')+' Direct / website booking</span>'+pcnote; }
+  if(!r.first_touch_label){ return '<span class="tk" style="color:#9bb0bb">'+svg('dot')+' Direct / Booking Engine</span>'+pcnote; }
   var k=touchKind(r.first_touch_channel,r.first_touch_via);
   var d=r.days_first_to_book, when;
   if(d==null) when='';
@@ -186,7 +186,7 @@ function chipsCell(r){
 function drawPie(rows){
   var pc=document.getElementById('piecard');
   var counts={};
-  (rows||[]).forEach(function(r){ var k=touchKind(r.first_touch_channel,r.first_touch_via); var key=(!r.first_touch_label)?'Direct / website':k.label; var col=(!r.first_touch_label)?'#9bb0bb':k.color; if(!counts[key])counts[key]={n:0,color:col}; counts[key].n++; });
+  (rows||[]).forEach(function(r){ var k=touchKind(r.first_touch_channel,r.first_touch_via); var key=(!r.first_touch_label)?'Direct / Booking Engine':k.label; var col=(!r.first_touch_label)?'#9bb0bb':k.color; if(!counts[key])counts[key]={n:0,color:col}; counts[key].n++; });
   var entries=Object.keys(counts).map(function(k){return {label:k,n:counts[k].n,color:counts[k].color};});
   entries.sort(function(a,b){return b.n-a.n;});
   var total=entries.reduce(function(s,e){return s+e.n;},0);
