@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>White Bay Villas — Bookings</title>
+<style>
+  :root{--ink:#0f2230;--muted:#6f8794;--teal:#1f9c98;--teal2:#2bb3b0;--sand:#e0b667;--coral:#e07a5f;--line:#e4ebee;--bg:#f4f6f5;--card:#ffffff;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  #topbar{position:sticky;top:0;z-index:30;background:var(--bg);box-shadow:0 3px 10px rgba(15,34,48,.07)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 30px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:17px;margin:0;font-weight:700}
+  header h1 span{color:var(--teal)}
+  header .sub{color:var(--muted);font-size:11.5px;margin-top:1px}
+  .hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  a.back{color:var(--muted);font-size:13px;text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px;font-weight:600}
+  a.back:hover{color:var(--ink)}
+  button{background:var(--teal);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px}
+  button:hover{filter:brightness(1.05)}
+  .seg{display:inline-flex;background:#eef3f3;border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+  .seg button{background:transparent;color:var(--muted);padding:5px 10px;border-radius:7px;font-weight:600}
+  .seg button.active{background:var(--teal);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .seg button:hover{filter:none;color:var(--ink)}
+  .seg button.active:hover{color:#fff}
+  .lbl{color:var(--muted);font-size:12px;font-weight:600}
+  #customWrap{display:inline-flex;align-items:center;gap:6px}
+  #customWrap input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12.5px;color:var(--ink);background:#fff}
+  #customWrap span{color:var(--muted);font-size:13px}
+  .wrap{padding:16px 30px 50px;max-width:1600px;margin:0 auto}
+  .statbar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:8px 14px;border-left:4px solid var(--teal);min-width:120px}
+  .stat b{font-size:19px;display:block;line-height:1.1}
+  .stat span{font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+  .stat.p{border-left-color:var(--sand)} .stat.m{border-left-color:#2e7d32} .stat.c{border-left-color:var(--coral)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 6px 10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr.brow:hover{background:#f8fafb;cursor:pointer}
+  .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.3px}
+  .b-confirmed{background:#e3f3ec;color:#1b7a52} .b-pending{background:#fbf1dd;color:#9a7417}
+  .src{font-size:12px;color:var(--ink)}
+  .orig{font-weight:600}
+  .orig .g{color:var(--muted);font-weight:400;font-size:11.5px}
+  .orig.cold{color:var(--teal)} .orig.in1800{color:var(--coral)} .orig.direct{color:var(--muted);font-weight:400}
+  .chips{display:flex;gap:4px;flex-wrap:wrap}
+  .chip{font-size:10.5px;background:#eef3f3;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted)}
+  .exp{color:var(--teal);font-size:12px;font-weight:600;white-space:nowrap}
+  .tl{background:#f8fafb;padding:4px 10px 10px 34px}
+  .tl table{font-size:12px}
+  .tl th{font-size:10px;padding:6px 8px}
+  .tl td{padding:6px 8px;border-bottom:1px dashed var(--line)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .d-out{background:var(--teal)} .d-in{background:var(--coral)} .d-x{background:var(--muted)}
+  .empty{color:var(--muted);font-size:13px;padding:16px 10px}
+  #updated{color:var(--muted);font-size:11.5px}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="topbar"><header>
+  <div class="hdr-left">
+    <h1>White Bay Villas · <span>Bookings</span></h1>
+    <div class="sub">Upcoming reservations &amp; how each one really started — the original touchpoint, not just how they booked</div>
+  </div>
+  <div class="hdr-right">
+    <span class="lbl">New in:</span>
+    <div class="seg" id="seg">
+      <button data-range="7d">7 days</button>
+      <button data-range="30d" class="active">30 days</button>
+      <button data-range="90d">90 days</button>
+      <button data-range="all">All</button>
+      <button data-range="custom">Custom</button>
+    </div>
+    <span id="customWrap" style="display:none"><input type="date" id="dFrom"><span>→</span><input type="date" id="dTo"><button id="applyCustom" style="padding:6px 10px">Apply</button></span>
+    <span id="updated"></span>
+    <a class="back" href="outbound.html">Outbound</a>
+    <a class="back" href="./">← Dashboard</a>
+  </div>
+</header></div>
+
+<div class="wrap">
+  <div class="statbar" id="statbar"></div>
+  <div class="card"><div id="list"><div class="empty">Loading…</div></div></div>
+  <p class="hint muted" style="font-size:12px;margin:12px 4px">
+    <b>Booked via</b> = Cloudbeds source (how they placed the booking). <b>Original touchpoint</b> = the first time this guest ever appeared in our system by phone or email — a cold call, a 1-800 call, a website inquiry — even if it was months before they booked. Click any row to see the full touchpoint timeline. Upcoming stays only (check-in today or later); filter is by when the booking was made.
+  </p>
+</div>
+
+<script>
+const SUPABASE_URL="https://hpobuszmkdibaznmufxc.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_cly2dzYEaEPkgS760hz8SA_BBbe_mtG";
+const SS_KEY="wbv_session";
+const session=()=>{try{return JSON.parse(localStorage.getItem(SS_KEY));}catch(e){return null;}};
+const setSession=s=>localStorage.setItem(SS_KEY,JSON.stringify(s));
+const money=n=>"$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:0});
+const fmtDate=d=>d?new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'2-digit'}):"";
+const esc=x=>String(x==null?'':x).replace(/[<>&]/g,c=>c==='<'?'&lt;':(c==='>'?'&gt;':'&amp;'));
+if(!session()){ location.href="./"; }
+
+const DAY=864e5, EPOCH="2015-01-01T00:00:00.000Z";
+let range={from:null,to:null,label:""};
+function presetRange(p){
+  const now=new Date(); let from;
+  if(p==='all'){range.from=EPOCH;range.to=now.toISOString();range.label="all time";return;}
+  else if(p==='7d'){from=new Date(now.getTime()-7*DAY);range.label="last 7 days";}
+  else if(p==='90d'){from=new Date(now.getTime()-90*DAY);range.label="last 90 days";}
+  else{from=new Date(now.getTime()-30*DAY);range.label="last 30 days";}
+  range.from=from.toISOString();range.to=now.toISOString();
+}
+function customRange(){
+  const f=document.getElementById("dFrom").value,t=document.getElementById("dTo").value;
+  if(!f||!t)return false;
+  range.from=new Date(f+"T00:00:00").toISOString();
+  range.to=new Date(t+"T23:59:59").toISOString();
+  range.label=new Date(f).toLocaleDateString()+" → "+new Date(t).toLocaleDateString();
+  return true;
+}
+async function refresh(){const s=session();const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:s.refresh_token})});const d=await r.json();if(!r.ok)throw new Error("refresh failed");setSession(d);return d;}
+async function rpc(fn,body){
+  let s=session();
+  const call=()=>fetch(SUPABASE_URL+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  let r=await call();
+  if(r.status===401){await refresh();s=session();r=await call();}
+  if(!r.ok)throw new Error("data fetch failed ("+fn+")");return r.json();
+}
+
+function origCell(r){
+  if(!r.first_touch_label){ return '<span class="orig direct">— no tracked touch</span>'; }
+  var lbl=r.first_touch_label;
+  var cls=''; var low=lbl.toLowerCase();
+  if(low.indexOf('1-800')>-1) cls='in1800';
+  else if(low.indexOf('call out')>-1||low.indexOf('text out')>-1) cls='cold';
+  var d=r.days_first_to_book;
+  var when;
+  if(d==null) when='';
+  else if(d>=0) when='<span class="g">'+fmtDate(r.first_touch_at)+' · '+d+'d before booking</span>';
+  else when='<span class="g">'+fmtDate(r.first_touch_at)+' · after booking (direct)</span>';
+  return '<span class="orig '+cls+'">'+esc(lbl)+'</span><br>'+when;
+}
+function chipsCell(r){
+  var c=[];
+  if(r.inbound_1800) c.push('<span class="chip">1-800 '+r.inbound_1800+'</span>');
+  if(r.calls_out||r.calls_in) c.push('<span class="chip">Calls '+r.calls_out+'/'+r.calls_in+'</span>');
+  if(r.texts_out||r.texts_in) c.push('<span class="chip">Texts '+r.texts_out+'/'+r.texts_in+'</span>');
+  if(r.emails_out||r.emails_in) c.push('<span class="chip">Email '+r.emails_out+'/'+r.emails_in+'</span>');
+  if(!c.length) c.push('<span class="chip">none tracked</span>');
+  return '<div class="chips">'+c.join('')+'</div>';
+}
+function render(rows){
+  var L=document.getElementById('list'); rows=rows||[];
+  var sb=document.getElementById('statbar');
+  var n=rows.length, conf=rows.filter(r=>r.status&&r.status.toLowerCase()==='confirmed').length, pend=n-conf;
+  var val=rows.reduce((s,r)=>s+(Number(r.value)||0),0);
+  var noTouch=rows.filter(r=>!r.first_touch_label).length;
+  sb.innerHTML='<div class="stat"><b>'+n+'</b><span>Bookings ('+range.label+')</span></div>'
+    +'<div class="stat"><b>'+conf+'</b><span>Confirmed</span></div>'
+    +'<div class="stat p"><b>'+pend+'</b><span>Pending</span></div>'
+    +'<div class="stat m"><b>'+money(val)+'</b><span>Total value</span></div>'
+    +'<div class="stat c"><b>'+(n-noTouch)+'</b><span>Have a prior touch</span></div>';
+  if(!n){ L.innerHTML='<div class="empty">No upcoming bookings made in this window.</div>'; return; }
+  var h='<table><thead><tr><th>Guest</th><th>Status</th><th>Booked</th><th>Check-in</th><th>Nights</th><th>Value</th><th>Booked via</th><th>Original touchpoint</th><th>Touchpoints</th><th></th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var st=(r.status||'').toLowerCase();
+    h+='<tr class="brow" data-i="'+i+'" data-res="'+esc(r.reservation_id)+'">'
+      +'<td><b>'+esc(r.guest_name||'—')+'</b><br><span class="g muted" style="font-size:11px">'+esc(r.email||r.phone||'')+'</span></td>'
+      +'<td><span class="badge b-'+st+'">'+esc(r.status||'')+'</span></td>'
+      +'<td>'+fmtDate(r.booked_date)+'</td>'
+      +'<td>'+fmtDate(r.check_in)+'</td>'
+      +'<td>'+(r.nights!=null?r.nights:'')+'</td>'
+      +'<td>'+money(r.value)+'</td>'
+      +'<td><span class="src">'+esc(r.source||'—')+'</span></td>'
+      +'<td>'+origCell(r)+'</td>'
+      +'<td>'+chipsCell(r)+'</td>'
+      +'<td><span class="exp" id="exp'+i+'">timeline ▸</span></td></tr>';
+    h+='<tr id="tl'+i+'" style="display:none"><td colspan="10" class="tl"><div id="tlbody'+i+'" class="muted" style="font-size:12px">Loading…</div></td></tr>';
+  });
+  h+='</tbody></table>';
+  L.innerHTML=h;
+}
+var _open={};
+async function toggleRow(i,res){
+  var tr=document.getElementById('tl'+i), exp=document.getElementById('exp'+i);
+  if(tr.style.display!=='none'){ tr.style.display='none'; exp.textContent='timeline ▸'; return; }
+  tr.style.display=''; exp.textContent='hide ▴';
+  if(_open[i]) return;
+  try{
+    var tps=await rpc('f_booking_touchpoints',{p_res:res});
+    _open[i]=true;
+    var body=document.getElementById('tlbody'+i);
+    if(!tps||!tps.length){ body.innerHTML='<div class="muted">No tracked touchpoints for this guest.</div>'; return; }
+    var h='<table><thead><tr><th>When</th><th>Channel</th><th>Dir</th><th>Via</th><th>Who</th><th>Detail</th></tr></thead><tbody>';
+    tps.forEach(function(t){
+      var dir=t.direction==='in'?'in':(t.direction==='out'?'out':t.direction||'');
+      var dc=dir==='in'?'d-in':(dir==='out'?'d-out':'d-x');
+      var via=t.via==='QUO'?'QUO':(/signalwire/i.test(t.via||'')?'1-800':(t.via||''));
+      var ch=t.channel==='phone'?'1-800 call':(t.channel==='call'?'Call':(t.channel==='text'?'Text':(t.channel==='email'?'Email':t.channel)));
+      h+='<tr><td>'+new Date(t.occurred_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'2-digit'})+' '+new Date(t.occurred_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'</td>'
+        +'<td><span class="dot '+dc+'"></span>'+esc(ch)+'</td>'
+        +'<td>'+esc(dir)+'</td><td>'+esc(via)+'</td><td>'+esc(t.agent||'')+'</td>'
+        +'<td class="muted">'+esc(t.detail||'')+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    body.innerHTML=h;
+  }catch(e){ document.getElementById('tlbody'+i).innerHTML='<div class="muted">Could not load timeline.</div>'; }
+}
+document.getElementById('list').addEventListener('click',function(e){
+  var tr=e.target.closest('tr.brow'); if(!tr) return;
+  toggleRow(tr.getAttribute('data-i'), tr.getAttribute('data-res'));
+});
+
+async function load(){
+  document.getElementById('updated').textContent="Loading…";
+  document.getElementById('list').innerHTML='<div class="empty">Loading…</div>';
+  _open={};
+  try{
+    var rows=await rpc('f_bookings_overview',{p_from:range.from,p_to:range.to});
+    render(rows);
+    document.getElementById('updated').textContent="updated "+new Date().toLocaleTimeString();
+  }catch(e){ document.getElementById('list').innerHTML='<div class="empty">Could not load ('+(e&&e.message||e)+'). Try the dashboard and sign in again.</div>'; document.getElementById('updated').textContent=""; }
+}
+document.getElementById("seg").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-range]"); if(!b) return;
+  [].forEach.call(this.querySelectorAll("button"),x=>x.classList.remove("active"));
+  b.classList.add("active");
+  var p=b.getAttribute("data-range");
+  document.getElementById("customWrap").style.display=(p==='custom')?'inline-flex':'none';
+  if(p==='custom') return;
+  presetRange(p); load();
+});
+document.getElementById("applyCustom").addEventListener("click",function(){ if(customRange()) load(); });
+presetRange('30d'); load();
+</script>
+</body>
+</html>
