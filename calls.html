@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>White Bay Villas — Past Guest Call Console</title>
+<style>
+  :root{--ink:#0f2230;--muted:#6f8794;--teal:#1f9c98;--teal2:#2bb3b0;--sand:#e0b667;--coral:#e07a5f;--line:#e4ebee;--bg:#f4f6f5;--card:#ffffff;--soft:#eef6f5;--warn:#fff5e6}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  #login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#0e1a24,#0b141b);z-index:50}
+  #login .box{background:#13242f;border:1px solid #21404e;border-radius:16px;padding:32px;width:340px;max-width:92vw;color:#eaf2f6}
+  #login h1{font-size:18px;margin:0 0 4px}
+  #login p{color:#8fa9b8;font-size:13px;margin:0 0 22px}
+  #login label{display:block;font-size:12px;color:#8fa9b8;margin:14px 0 6px}
+  #login input{width:100%;background:#0d1c25;border:1px solid #21404e;border-radius:8px;padding:11px;color:#eaf2f6;font-size:14px}
+  #login button{width:100%;margin-top:22px}
+  #loginErr{color:#e07a5f;font-size:12.5px;margin-top:12px;min-height:16px}
+  button,.btn{background:var(--teal);color:#fff;border:0;border-radius:8px;padding:8px 13px;font-weight:600;cursor:pointer;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;line-height:1.2}
+  button:disabled{opacity:.55;cursor:default}
+  button.ghost,.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  button.small{padding:5px 9px;font-size:12px}
+  #app{display:none;height:100%;flex-direction:column}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 18px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:16px;margin:0}
+  header h1 span{color:var(--teal)}
+  .hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  select,input[type=text],input[type=date],input[type=number],textarea{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink)}
+  .tabs{display:flex;gap:4px}
+  .tabs button{background:transparent;color:var(--muted);border:1px solid transparent}
+  .tabs button.on{background:var(--soft);color:var(--teal);border-color:#cfe7e5}
+  #score{display:flex;gap:8px;padding:8px 18px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto}
+  .sc{border:1px solid var(--line);border-radius:10px;padding:5px 10px;min-width:96px;flex:0 0 auto}
+  .sc .v{font-size:17px;font-weight:700}
+  .sc .l{font-size:11px;color:var(--muted);white-space:nowrap}
+  .sc.grp{background:var(--soft);border-color:#cfe7e5;font-size:11px;color:var(--teal);font-weight:700;display:flex;align-items:center;min-width:auto}
+  main{flex:1;min-height:0;display:flex}
+  .view{display:none;flex:1;min-height:0}
+  .view.on{display:flex}
+  #queuePane{width:360px;flex:0 0 360px;border-right:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;min-height:0}
+  #searchRow{padding:10px;border-bottom:1px solid var(--line);display:flex;gap:6px}
+  #searchRow input{flex:1}
+  #buckets{padding:8px 10px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--line)}
+  .bk{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;font-weight:600;font-size:13px}
+  .bk:hover{background:var(--bg)}
+  .bk.on{background:var(--soft);border-color:#cfe7e5;color:var(--teal)}
+  .bk .n{background:var(--bg);border-radius:20px;padding:1px 9px;font-size:12px;color:var(--ink)}
+  .bk.on .n{background:#fff}
+  .bk.b1 .n{background:#fde4dc;color:#a8432a}
+  .bk.b2 .n{background:#fff0d2;color:#8a6212}
+  #list{flex:1;overflow:auto}
+  .li{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .li:hover{background:#fafcfc}
+  .li.on{background:var(--soft);box-shadow:inset 3px 0 0 var(--teal)}
+  .li .nm{font-weight:700}
+  .li .rs{font-size:12px;color:var(--muted);margin-top:2px}
+  .li .pr{float:right;font-size:11px;color:var(--muted)}
+  #cardPane{flex:1;overflow:auto;padding:16px 20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+  .gname{font-size:22px;font-weight:700;margin:0}
+  .gmeta{color:var(--muted);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .chip{background:var(--bg);border-radius:20px;padding:3px 10px;font-size:12px}
+  .chip.teal{background:var(--soft);color:var(--teal);font-weight:600}
+  .chip.warn{background:var(--warn);color:#8a6212;font-weight:600}
+  .chip.coral{background:#fde4dc;color:#a8432a;font-weight:600}
+  .reason{margin-top:10px;font-size:13.5px;background:var(--soft);border-radius:10px;padding:8px 12px;color:#14524f}
+  .alert{margin-top:10px;font-size:13px;background:var(--warn);border:1px solid #f1d9a8;border-radius:10px;padding:8px 12px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .actions h3,.card h3{font-size:13px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .bigcall{font-size:16px;padding:11px 18px}
+  .tip{font-size:12px;color:var(--muted);margin-top:8px}
+  .outs{display:flex;flex-wrap:wrap;gap:7px}
+  .outs button{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .outs button:hover{border-color:var(--teal);color:var(--teal)}
+  .outs button.good{border-color:#bfe3e1}
+  .outs button.hot{border-color:#f4c3b4;color:#a8432a}
+  .outs button.bad{color:#8a4a3a}
+  .inline{display:none;margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap}
+  .inline.on{display:flex}
+  textarea{width:100%;min-height:58px;resize:vertical}
+  .tl{list-style:none;margin:0;padding:0}
+  .tl li{display:grid;grid-template-columns:118px 1fr;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .tl .when{font-size:12px;color:var(--muted)}
+  .tl .what{font-size:13px}
+  .tl .tag{display:inline-block;font-size:11px;border-radius:12px;padding:1px 7px;margin-right:4px;background:var(--bg);color:var(--muted);font-weight:600}
+  .tl .tag.in{background:#fde4dc;color:#a8432a}
+  .tl .tag.out{background:var(--soft);color:var(--teal)}
+  .tl .body{margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .empty{color:var(--muted);padding:40px;text-align:center}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;position:sticky;top:0;background:#fff}
+  .pad{padding:16px 20px;overflow:auto;flex:1}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0f2230;color:#fff;padding:10px 14px;border-radius:10px;display:none;gap:12px;align-items:center;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.2);font-size:13px}
+  #toast button{background:#2bb3b0}
+  .muted{color:var(--muted)}
+  .backbtn{display:none}
+  @media (max-width:860px){
+    #queuePane{width:100%;flex-basis:auto}
+    #queue.view.on.showcard #queuePane{display:none}
+    #queue.view.on:not(.showcard) #cardPane{display:none}
+    .backbtn{display:inline-flex}
+    .actions{grid-template-columns:1fr}
+    header{padding:8px 12px}
+    #score{padding:8px 12px}
+    #cardPane{padding:12px}
+    .tl li{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h1>White Bay Villas</h1><p>Past Guest Call Console — sign in</p>
+  <form id="loginForm">
+    <label>Email</label><input id="email" type="email" autocomplete="username" required>
+    <label>Password</label><input id="password" type="password" autocomplete="current-password" required>
+    <button type="submit" id="loginBtn">Sign in</button>
+    <div id="loginErr"></div>
+  </form>
+</div></div>
+
+<div id="app">
+  <header>
+    <div><h1>White Bay Villas <span>Past Guest Call Console</span></h1></div>
+    <div class="tabs">
+      <button class="on" data-view="queue">Call queue</button>
+      <button data-view="emails">Email-only list</button>
+      <button data-view="wins">Campaign wins</button>
+    </div>
+    <div class="hdr-right">
+      <label class="muted" style="font-size:12px">Working as</label>
+      <select id="agent"><option>Rachel</option><option>Amy</option><option>Steve</option></select>
+      <a class="btn ghost" href="./">Leads dashboard</a>
+      <button class="ghost" onclick="signOut()">Sign out</button>
+    </div>
+  </header>
+  <div id="score"></div>
+  <main>
+    <section class="view on" id="queue">
+      <div id="queuePane">
+        <div id="searchRow"><input type="text" id="q" placeholder="Search name, phone or email"><button class="ghost small" id="qClear" style="display:none">Clear</button></div>
+        <div id="buckets"></div>
+        <div id="list"><div class="empty">Loading…</div></div>
+      </div>
+      <div id="cardPane"><div class="empty">Pick a guest from the queue.</div></div>
+    </section>
+    <section class="view" id="emails"><div class="pad" id="emailsWrap"><div class="empty">Loading…</div></div></section>
+    <section class="view" id="wins"><div class="pad" id="winsWrap"><div class="empty">Loading…</div></div></section>
+  </main>
+</div>
+<div id="toast"><span id="toastMsg"></span><button class="small" id="undoBtn">Undo</button></div>
+
+<script>
+const SUPABASE_URL="https://hpobuszmkdibaznmufxc.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_cly2dzYEaEPkgS760hz8SA_BBbe_mtG";
+const SS_KEY="wbv_session";
+const session=()=>{try{return JSON.parse(localStorage.getItem(SS_KEY));}catch(e){return null;}};
+const setSession=s=>localStorage.setItem(SS_KEY,JSON.stringify(s));
+const clearSession=()=>localStorage.removeItem(SS_KEY);
+async function signIn(email,password){
+  const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  const d=await r.json(); if(!r.ok) throw new Error(d.error_description||d.msg||d.message||"Sign-in failed"); setSession(d); return d;
+}
+async function refresh(){const s=session();const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:s.refresh_token})});const d=await r.json();if(!r.ok)throw new Error("refresh failed");setSession(d);return d;}
+function signOut(){clearSession();location.reload();}
+// RPC with any JSON body
+async function call(fn,body){
+  let s=session();
+  const go=()=>fetch(SUPABASE_URL+"/rest/v1/rpc/"+fn,{method:"POST",
+    headers:{apikey:PUBLISHABLE_KEY,Authorization:"Bearer "+s.access_token,"Content-Type":"application/json"},
+    body:JSON.stringify(body||{})});
+  let r=await go();
+  if(r.status===401){await refresh();s=session();r=await go();}
+  if(!r.ok){let t='';try{t=(await r.json()).message||'';}catch(_){}throw new Error(fn+" failed "+t);}
+  const txt=await r.text(); return txt?JSON.parse(txt):null;
+}
+
+// ---------- helpers ----------
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>"$"+(Number(n)||0).toLocaleString(undefined,{maximumFractionDigits:0});
+const fullName=g=>[g.first_name,g.last_name].filter(Boolean).join(' ')||'(no name)';
+const firstName=g=>((g.first_name||'').replace(/\(.*?\)/g,'').trim().split(/\s+/)[0])||'there';
+function fmtPhone(p){p=(p||'').replace(/\D/g,'');if(p.length===10)return '('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6);return p;}
+function e164(p){p=(p||'').replace(/\D/g,'');return p.length===10?'+1'+p:'+'+p;}
+const fmtDate=d=>d?new Date(d+(String(d).length===10?'T12:00:00':'')).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'';
+function fmtWhen(ts){if(!ts)return '';const d=new Date(ts);return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'2-digit'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});}
+function todayISO(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
+async function copyText(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}a.remove();return ok;}}
+let toastTimer=null,undoKey=null;
+function toast(msg,undoable){document.getElementById('toastMsg').textContent=msg;document.getElementById('undoBtn').style.display=undoable?'':'none';const t=document.getElementById('toast');t.style.display='flex';clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.style.display='none';undoKey=null;},undoable?9000:2500);}
+
+const BUCKETS=[['1','Replied, waiting on us'],['2','Callbacks due'],['3','Hot leads'],['4','Recently reached out'],['5','Never contacted'],['6','Try again']];
+const OUTCOMES=[['no_answer','No answer',''],['voicemail','Left voicemail',''],['spoke','Spoke','good'],['hot_lead','Hot lead','hot'],['not_now','Not this year',''],['callback','Callback…','good'],['booked','Booked…','good'],['bad_number','Bad number','bad'],['not_interested','Not interested','bad'],['do_not_contact','Do not contact','bad']];
+const STATUS_LABEL={new:'New',attempted:'Attempted',hot_lead:'Hot lead',not_now:'Not this year',callback:'Callback',booked:'Booked',bad_number:'Bad number',not_interested:'Not interested',do_not_contact:'Do not contact',no_phone:'No phone'};
+const TEMPLATES=[
+  ['Welcome back',g=>`Hi ${firstName(g)}, it's ${agent()} at White Bay Villas on Jost Van Dyke! It's been a while since your stay and we'd love to welcome you back. Want me to check some dates for you? Reply STOP to opt out.`],
+  ['Your season',g=>{const m=usualMonth(g);return `Hi ${firstName(g)}, ${agent()} here from White Bay Villas.${m?` You've visited us in ${m} before —`:''} we're planning the season now and I'd be happy to hold a villa for you. Any dates in mind? Reply STOP to opt out.`;}],
+  ['Sorry I missed you',g=>`Hi ${firstName(g)}, ${agent()} from White Bay Villas — sorry I missed you! Just checking whether a return trip to Jost Van Dyke is on your radar. Happy to help whenever you're ready. Reply STOP to opt out.`]
+];
+function usualMonth(g){const m=(g.usual_months||[]);if(!m.length||m.length>2)return '';return m.map(x=>new Date(2000,x-1,1).toLocaleString('en-US',{month:'long'})).join(' or ');}
+const agent=()=>document.getElementById('agent').value;
+
+// ---------- state ----------
+let st={bucket:null,counts:{},list:[],cur:null,curData:null,searching:false};
+
+// ---------- scoreboard ----------
+async function loadScore(){
+  const now=new Date(); const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const w0=new Date(t0.getTime()-((t0.getDay()+6)%7)*864e5);
+  const [d,w]=await Promise.all([call('f_pg_campaign',{p_from:t0.toISOString(),p_to:now.toISOString()}),call('f_pg_campaign',{p_from:w0.toISOString(),p_to:now.toISOString()})]);
+  const pick=(rows)=>{const me=(rows||[]).find(r=>r.agent===agent());const all=(rows||[]).find(r=>r.agent==='All')||{};return {me:me||{},all};};
+  const D=pick(d),W=pick(w);
+  const tile=(v,l)=>`<div class="sc"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  document.getElementById('score').innerHTML=
+    `<div class="sc grp">TODAY</div>`+tile(D.all.contacted||0,'Contacted')+tile(D.all.reached||0,'Reached')+tile(D.all.hot_leads||0,'Hot leads')+tile(D.all.booked||0,'Bookings')+tile(money(D.all.revenue),'Revenue')+
+    `<div class="sc grp">THIS WEEK</div>`+tile(W.all.contacted||0,'Contacted')+tile(W.all.reached||0,'Reached')+tile(W.all.hot_leads||0,'Hot leads')+tile(W.all.booked||0,'Bookings')+tile(money(W.all.revenue),'Revenue')+
+    `<div class="sc grp">NOW</div>`+tile(W.all.callbacks_due||0,'Callbacks due');
+}
+
+// ---------- queue ----------
+async function loadBuckets(){
+  const rows=await call('f_pg_buckets',{});
+  st.counts={}; (rows||[]).forEach(r=>st.counts[r.bucket.charAt(0)]=r.guests);
+  renderBuckets();
+}
+function renderBuckets(){
+  document.getElementById('buckets').innerHTML=BUCKETS.map(([k,l])=>`<div class="bk b${k} ${st.bucket===k&&!st.searching?'on':''}" data-b="${k}"><span>${l}</span><span class="n">${(st.counts[k]||0).toLocaleString()}</span></div>`).join('');
+  document.querySelectorAll('.bk').forEach(el=>el.onclick=()=>pickBucket(el.dataset.b));
+}
+async function pickBucket(k,keepCur){
+  st.bucket=k; st.searching=false; document.getElementById('q').value=''; document.getElementById('qClear').style.display='none';
+  renderBuckets();
+  document.getElementById('list').innerHTML='<div class="empty">Loading…</div>';
+  st.list=await call('f_pg_queue',{p_bucket:k,p_limit:200})||[];
+  renderList();
+  if(!keepCur&&st.list.length&&window.innerWidth>860)openGuest(st.list[0].guest_key);
+}
+function renderList(){
+  const el=document.getElementById('list');
+  if(!st.list.length){el.innerHTML='<div class="empty">'+(st.searching?'No matches.':'Nobody in this bucket right now.')+'</div>';return;}
+  el.innerHTML=st.list.map(g=>{
+    const sub=st.searching?((STATUS_LABEL[g.status]||g.status)+(g.bucket?' · '+g.bucket.slice(2):'')):(g.priority_reason||'');
+    return `<div class="li ${st.cur===g.guest_key?'on':''}" data-k="${g.guest_key}">${st.searching?'':`<span class="pr">${g.priority??''}</span>`}<div class="nm">${esc(fullName(g))}</div><div class="rs">${esc(fmtPhone(g.phone))}${g.city?' · '+esc(g.city)+(g.state?', '+esc(g.state):''):''}</div><div class="rs">${esc(sub)}</div></div>`;}).join('');
+  el.querySelectorAll('.li').forEach(x=>x.onclick=()=>openGuest(+x.dataset.k));
+}
+let searchT=null;
+document.getElementById('q').addEventListener('input',e=>{
+  clearTimeout(searchT); const v=e.target.value.trim();
+  document.getElementById('qClear').style.display=v?'':'none';
+  if(v.length<2){if(st.searching){st.searching=false;pickBucket(st.bucket||firstBucket());}return;}
+  searchT=setTimeout(async()=>{st.searching=true;renderBuckets();st.list=await call('f_pg_search',{p_q:v})||[];renderList();},300);
+});
+document.getElementById('qClear').onclick=()=>{document.getElementById('q').value='';st.searching=false;pickBucket(st.bucket||firstBucket());};
+const firstBucket=()=>(BUCKETS.find(([k])=>st.counts[k]>0)||['5'])[0];
+
+// ---------- guest card ----------
+async function openGuest(k){
+  st.cur=k; renderList();
+  document.getElementById('queue').classList.add('showcard');
+  const pane=document.getElementById('cardPane'); pane.innerHTML='<div class="empty">Loading…</div>';
+  const d=await call('f_pg_guest',{p_key:k}); if(st.cur!==k)return;
+  st.curData=d; renderCard(d); pane.scrollTop=0;
+}
+function timelineItem(t){
+  const ch=t.channel||'note', dir=(t.direction||'').startsWith('in')?'in':'out';
+  const srcLbl={console:'Console',sheet:'Spreadsheet',quo:'Quo',gmail:'Email',roundcube:'Email',signalwire:'1-800',grace:'1-800 answering',webflow:'Website form',system:'System'}[t.src]||t.src;
+  const chLbl={call:'Call',phone:'Call',text:'Text',email:'Email',note:'Note',web:'Web form',social:'Social'}[ch]||ch;
+  const outLbl=t.outcome?(OUTCOMES.find(o=>o[0]===t.outcome)||[0,t.outcome])[1]:'';
+  let extra=[];
+  if(t.connected===true)extra.push('connected'+(t.duration_sec?' · '+Math.round(t.duration_sec/60*10)/10+' min':''));
+  if(t.connected===false&&ch==='call')extra.push('not connected');
+  if(t.sentiment)extra.push('sentiment: '+t.sentiment);
+  if(['hot','warm','cold','operational'].includes(t.outcome))extra.push(t.outcome);
+  const isOut=['hot','warm','cold','operational'].includes(t.outcome)?'':outLbl;
+  return `<li><div class="when">${esc(fmtWhen(t.at))}</div><div class="what"><span class="tag ${dir}">${dir==='in'?'From guest':'From us'}</span><span class="tag">${esc(srcLbl)} · ${esc(chLbl)}</span>${t.agent?`<span class="tag">${esc(t.agent)}</span>`:''}${isOut?` <b>${esc(isOut)}</b>`:''}${extra.length?` <span class="muted">${esc(extra.join(' · '))}</span>`:''}${t.text?`<div class="body">${esc(t.text)}</div>`:''}</div></li>`;
+}
+function renderCard(d){
+  const g=d.guest; if(!g){document.getElementById('cardPane').innerHTML='<div class="empty">Guest not found.</div>';return;}
+  const tel=g.phone?e164(g.phone):'';
+  const chips=[];
+  chips.push(`<span class="chip teal">${esc(STATUS_LABEL[g.status]||g.status)}</span>`);
+  if(g.bucket)chips.push(`<span class="chip">${esc(g.bucket.slice(2))}</span>`);
+  if(g.total_stays)chips.push(`<span class="chip">${g.total_stays} stay${g.total_stays>1?'s':''}</span>`);
+  if(g.last_stay)chips.push(`<span class="chip">Last stay ${esc(fmtDate(g.last_stay))}</span>`);
+  if(g.first_stay&&g.first_stay!==g.last_stay)chips.push(`<span class="chip">First stay ${esc(fmtDate(g.first_stay))}</span>`);
+  if(g.attempts_total)chips.push(`<span class="chip">${g.attempts_total} tries${g.unanswered?' · '+g.unanswered+' unanswered':''}</span>`);
+  if(g.emailed)chips.push(`<span class="chip">Emailed by Amy</span>`);
+  if(g.callback_on)chips.push(`<span class="chip warn">Callback ${esc(fmtDate(g.callback_on))}</span>`);
+  if(g.win_reservation_id)chips.push(`<span class="chip coral">Booked after outreach · ${money(g.win_value)}</span>`);
+  let alerts='';
+  if(g.booked_future)alerts+=`<div class="alert"><b>Already has a reservation</b> — ${esc(g.booked_future_info||'')}. No need to call about booking.</div>`;
+  if(g.opted_out)alerts+=`<div class="alert"><b>Do not contact</b> — this guest opted out.</div>`;
+  if(g.replied_waiting)alerts+=`<div class="alert"><b>Waiting on us:</b> ${esc(g.quo_last_in_text||'')} <span class="muted">(${esc(fmtWhen(g.quo_last_in))})</span></div>`;
+  else if(g.reached_out_at&&new Date(g.reached_out_at)>new Date(Date.now()-90*864e5))alerts+=`<div class="alert"><b>Reached out to us</b> by ${esc((g.reached_out_channel||'').split(' ')[0])} on ${esc(fmtWhen(g.reached_out_at))}: ${esc(g.reached_out_text||'')}</div>`;
+  const tplOpts=TEMPLATES.map((t,i)=>`<option value="${i}">${esc(t[0])}</option>`).join('');
+  const books=(d.bookings||[]).map(b=>`<tr><td>${esc(b.status)}</td><td>${esc(fmtDate(b.check_in))} → ${esc(fmtDate(b.check_out))}</td><td>${esc(fmtDate(b.booked_on))}</td><td>${money(b.total)}</td></tr>`).join('');
+  document.getElementById('cardPane').innerHTML=`
+  <button class="ghost small backbtn" onclick="document.getElementById('queue').classList.remove('showcard')">← Back to queue</button>
+  <div class="card">
+    <p class="gname">${esc(fullName(g))}</p>
+    <div class="gmeta"><span>${g.phone?'📞 '+esc(fmtPhone(g.phone)):'No phone'}${g.phone2?' · '+esc(fmtPhone(g.phone2)):''}</span><span>${g.email?'✉ '+esc(g.email):''}</span><span>${esc([g.city,g.state].filter(Boolean).join(', '))}</span></div>
+    <div class="chips">${chips.join('')}</div>
+    ${g.priority_reason?`<div class="reason">★ ${esc(g.priority_reason)}</div>`:''}
+    ${alerts}
+  </div>
+  <div class="card"><div class="actions">
+    <div>
+      <h3>Call</h3>
+      ${g.phone?`<div class="row"><a class="btn bigcall" href="tel:${tel}">📞 Call ${esc(fmtPhone(g.phone))}</a><button class="ghost" onclick="copyNum()">Copy number</button></div>
+      <div class="tip">Opens Quo. First time on Windows: Settings → Apps → Default apps → search "TEL" → choose Quo.</div>`:'<div class="muted">No phone number on file.</div>'}
+    </div>
+    <div>
+      <h3>Text</h3>
+      ${g.phone?`<div class="row"><select id="tpl">${tplOpts}</select><a class="btn" id="smsLink" href="#">💬 Open text</a><button class="ghost" onclick="copyMsg()">Copy message</button></div>
+      <textarea id="msg" style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:6px"><button class="ghost small" onclick="logOutcome('texted')">Mark texted</button><span class="tip" style="margin:0">If "Open text" doesn't open Quo, copy the number and message and paste into Quo.</span></div>`:''}
+    </div>
+  </div></div>
+  <div class="card">
+    <h3>Outcome</h3>
+    <div class="outs">${OUTCOMES.map(o=>`<button class="${o[2]}" data-o="${o[0]}">${esc(o[1])}</button>`).join('')}</div>
+    <div class="inline" id="cbRow"><label>Call back on</label><input type="date" id="cbDate" min="${todayISO()}"><button onclick="logOutcome('callback')">Save callback</button><button class="ghost" onclick="hideInline()">Cancel</button></div>
+    <div class="inline" id="bkRow"><label>Booking amount $</label><input type="number" id="bkAmt" min="0" step="1" style="width:120px"><button onclick="logOutcome('booked')">Save booking</button><button class="ghost" onclick="hideInline()">Cancel</button></div>
+    <textarea id="note" placeholder="Notes (optional) — saved with the outcome" style="margin-top:10px"></textarea>
+    <div class="row" style="margin-top:6px"><button class="ghost small" onclick="logOutcome('note')">Save note only</button><button class="ghost small" onclick="skipGuest()">Skip for now →</button></div>
+  </div>
+  ${books?`<div class="card"><h3>Reservations on file (Cloudbeds)</h3><table><thead><tr><th>Status</th><th>Stay</th><th>Booked</th><th>Total</th></tr></thead><tbody>${books}</tbody></table></div>`:''}
+  <div class="card"><h3>History (${(d.timeline||[]).length})</h3>
+    ${(d.timeline||[]).length?`<ul class="tl">${d.timeline.map(timelineItem).join('')}</ul>`:'<div class="muted">No history yet.</div>'}
+  </div>`;
+  document.querySelectorAll('.outs button').forEach(b=>b.onclick=()=>{
+    const o=b.dataset.o; hideInline();
+    if(o==='callback'){document.getElementById('cbRow').classList.add('on');document.getElementById('cbDate').focus();return;}
+    if(o==='booked'){document.getElementById('bkRow').classList.add('on');document.getElementById('bkAmt').focus();return;}
+    logOutcome(o);
+  });
+  if(g.phone){const sel=document.getElementById('tpl');const upd=()=>{document.getElementById('msg').value=TEMPLATES[+sel.value][1](g);updSms();};sel.onchange=upd;document.getElementById('msg').oninput=updSms;
+    if(g.replied_waiting||g.attempts_total>0)sel.value='2';else if(usualMonth(g))sel.value='1';upd();}
+}
+function updSms(){const g=st.curData&&st.curData.guest;if(!g)return;const m=document.getElementById('msg').value;document.getElementById('smsLink').href='sms:'+e164(g.phone)+'?body='+encodeURIComponent(m);}
+function hideInline(){document.querySelectorAll('.inline').forEach(x=>x.classList.remove('on'));}
+async function copyNum(){const g=st.curData.guest;toast(await copyText(e164(g.phone))?'Number copied':'Copy failed');}
+async function copyMsg(){const g=st.curData.guest;const ok=await copyText(document.getElementById('msg').value);toast(ok?'Message copied — number is '+fmtPhone(g.phone):'Copy failed');}
+
+let busy=false;
+async function logOutcome(o){
+  if(busy||!st.curData)return; const g=st.curData.guest;
+  const body={p_key:g.guest_key,p_agent:agent(),p_outcome:o,p_note:(document.getElementById('note')||{}).value||null,p_channel:o==='texted'?'text':'call'};
+  if(o==='callback'){const d=document.getElementById('cbDate').value;if(!d){toast('Pick a callback date');return;}body.p_callback=d;}
+  if(o==='booked'){const a=document.getElementById('bkAmt').value;body.p_booking_value=a?Number(a):null;}
+  if(o==='note'&&!body.p_note){toast('Type a note first');return;}
+  busy=true; document.querySelectorAll('.outs button').forEach(b=>b.disabled=true);
+  try{
+    await call('f_pg_log',body);
+    undoKey=g.guest_key;
+    const lbl=o==='texted'?'Texted':o==='note'?'Note saved':(OUTCOMES.find(x=>x[0]===o)||[0,o])[1].replace('…','');
+    toast(lbl+' — '+fullName(g),o!=='note');
+    if(o==='note'){openGuest(g.guest_key);return;}
+    nextGuest(g.guest_key);
+    loadBuckets(); loadScore();
+  }catch(e){toast('Could not save: '+e.message);}
+  finally{busy=false;document.querySelectorAll('.outs button').forEach(b=>b.disabled=false);}
+}
+function nextGuest(k){
+  const i=st.list.findIndex(x=>x.guest_key===k);
+  if(!st.searching&&i>-1)st.list.splice(i,1);
+  const nx=st.list[Math.max(0,Math.min(i,st.list.length-1))];
+  if(nx&&!st.searching){openGuest(nx.guest_key);} else if(!st.searching){renderList();if(st.bucket)pickBucket(st.bucket);} else {openGuest(k);}
+}
+function skipGuest(){if(!st.curData)return;const k=st.curData.guest.guest_key;const i=st.list.findIndex(x=>x.guest_key===k);if(i>-1&&!st.searching){const [x]=st.list.splice(i,1);st.list.push(x);const nx=st.list[i]||st.list[0];if(nx)openGuest(nx.guest_key);}}
+document.getElementById('undoBtn').onclick=async()=>{
+  if(!undoKey)return;const k=undoKey;undoKey=null;
+  try{const r=await call('f_pg_undo_last',{p_key:k});toast(r&&r.ok?'Undone':'Nothing to undo');await loadBuckets();if(st.bucket)await pickBucket(st.bucket,true);openGuest(k);loadScore();}catch(e){toast('Undo failed');}
+};
+
+// ---------- email-only list ----------
+let emailRows=[];
+async function loadEmails(){
+  const w=document.getElementById('emailsWrap'); w.innerHTML='<div class="empty">Loading…</div>';
+  emailRows=await call('f_pg_email_list',{})||[];
+  const notYet=emailRows.filter(r=>!r.emailed).length;
+  w.innerHTML=`<div class="card"><h3>Guests with email but no phone — for Amy</h3>
+    <p class="muted" style="margin-top:0">${emailRows.length.toLocaleString()} guests · ${notYet.toLocaleString()} not emailed yet · ordered by priority (repeat and recent guests first). Guests who opted out or already have a reservation are left off.</p>
+    <div class="row"><label>Show</label><select id="emF"><option value="no">Not emailed yet</option><option value="all">Everyone</option><option value="yes">Already emailed</option></select>
+    <label>Batch size</label><select id="emN"><option>50</option><option selected>100</option><option>250</option><option>500</option><option value="0">All</option></select>
+    <button id="emCopy">Copy emails</button><button class="ghost" id="emMark">Mark this batch as emailed</button><span id="emMsg" class="muted"></span></div></div>
+    <div class="card" style="padding:0"><div style="max-height:62vh;overflow:auto" id="emTable"></div></div>`;
+  const batch=()=>{const f=document.getElementById('emF').value,n=+document.getElementById('emN').value;let r=emailRows.filter(x=>f==='all'||(f==='no'?!x.emailed:x.emailed));return n?r.slice(0,n):r;};
+  const draw=()=>{const r=batch();document.getElementById('emTable').innerHTML=`<table><thead><tr><th>Name</th><th>Email</th><th>Where</th><th>Stays</th><th>Last stay</th><th>Why</th><th>Emailed</th></tr></thead><tbody>${r.map(x=>`<tr><td>${esc(fullName(x))}</td><td>${esc(x.email)}</td><td>${esc([x.city,x.state].filter(Boolean).join(', '))}</td><td>${x.total_stays||''}</td><td>${esc(fmtDate(x.last_stay))}</td><td class="muted">${esc(x.priority_reason||'')}</td><td>${x.emailed?'Yes':''}</td></tr>`).join('')}</tbody></table>`;document.getElementById('emMsg').textContent=r.length+' in this batch';};
+  document.getElementById('emF').onchange=draw;document.getElementById('emN').onchange=draw;
+  document.getElementById('emCopy').onclick=async()=>{const r=batch();const ok=await copyText(r.map(x=>x.email).join(', '));document.getElementById('emMsg').textContent=ok?r.length+' emails copied — paste into the BCC line':'Copy failed';};
+  document.getElementById('emMark').onclick=async()=>{const r=batch().filter(x=>!x.emailed);if(!r.length){toast('Nothing to mark');return;}if(!confirm('Mark '+r.length+' guests as emailed by '+agent()+'?'))return;
+    try{const n=await call('f_pg_mark_emailed',{p_keys:r.map(x=>x.guest_key),p_agent:agent()});toast(n+' marked as emailed');loadEmails();}catch(e){toast('Could not save');}};
+  draw();
+}
+
+// ---------- campaign wins ----------
+async function loadWins(){
+  const w=document.getElementById('winsWrap'); w.innerHTML='<div class="empty">Loading…</div>';
+  const r=await call('f_pg_wins',{})||[];
+  const tot=r.reduce((s,x)=>s+(Number(x.win_value)||0),0), conf=r.filter(x=>/confirmed/.test(x.win_info||''));
+  w.innerHTML=`<div class="card"><h3>Guests who booked after we reached out</h3>
+    <p class="muted" style="margin-top:0">A Cloudbeds reservation made on or after the guest's first call or text from the campaign, matched by email, phone or name. ${r.length} guests · ${money(tot)} total · ${conf.length} confirmed (${money(conf.reduce((s,x)=>s+(Number(x.win_value)||0),0))}), the rest pending. Value is the larger of the reservation total and payments received.</p></div>
+    <div class="card" style="padding:0"><div style="overflow:auto"><table><thead><tr><th>Guest</th><th>First contacted</th><th>Booked</th><th>Value</th><th>Paid so far</th><th>Last contact by</th><th>Reservation</th></tr></thead><tbody>
+    ${r.map(x=>`<tr><td><a href="#" data-k="${x.guest_key}">${esc(x.guest)}</a></td><td>${esc(fmtDate(x.first_attempt_on))}</td><td>${esc(fmtDate(x.win_booked_on))}</td><td>${money(x.win_value)}</td><td>${x.win_paid!=null?money(x.win_paid):''}</td><td>${esc(x.win_agent||'')}</td><td class="muted">${esc(x.win_info||'')}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+  w.querySelectorAll('a[data-k]').forEach(a=>a.onclick=e=>{e.preventDefault();switchView('queue');openGuest(+a.dataset.k);});
+}
+
+// ---------- views ----------
+const loaded={};
+function switchView(v){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id===v));
+  if(v==='emails'&&!loaded.emails){loaded.emails=1;loadEmails();}
+  if(v==='wins'&&!loaded.wins){loaded.wins=1;loadWins();}
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+
+// ---------- start ----------
+function initAgent(){
+  const sel=document.getElementById('agent');let a=null;try{a=localStorage.getItem('pgc_agent');}catch(_){}
+  if(!a){const em=((session()||{}).user||{}).email||'';const p=em.split('@')[0].toLowerCase();a=p.startsWith('amy')?'Amy':p.startsWith('steve')?'Steve':'Rachel';}
+  sel.value=a; sel.onchange=()=>{try{localStorage.setItem('pgc_agent',sel.value);}catch(_){}loadScore();if(st.curData)renderCard(st.curData);};
+}
+async function showApp(){
+  document.getElementById('login').style.display='none';document.getElementById('app').style.display='flex';
+  initAgent();
+  try{
+    await loadBuckets();
+    pickBucket(firstBucket());
+    loadScore().catch(()=>{});
+    // pull in the latest Quo replies, then refresh counts quietly
+    call('f_pg_refresh',{}).then(()=>loadBuckets()).catch(()=>{});
+  }catch(e){document.getElementById('list').innerHTML='<div class="empty">Could not load: '+esc(e.message)+'</div>';}
+}
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();const b=document.getElementById("loginBtn"),er=document.getElementById("loginErr");
+  er.textContent="";b.textContent="Signing in…";b.disabled=true;
+  try{await signIn(document.getElementById("email").value.trim(),document.getElementById("password").value);showApp();}
+  catch(ex){er.textContent=ex.message;}finally{b.textContent="Sign in";b.disabled=false;}
+});
+(async()=>{if(session()){try{await call('f_pg_stats',{});showApp();}catch(e){clearSession();}}})();
+</script>
+</body>
+</html>
