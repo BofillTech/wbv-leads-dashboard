@@ -158,7 +158,7 @@
         </span>
       </div>
       <span id="updated">Loading…</span>
-      <button onclick="location.href='bookings.html'">Bookings</button><button onclick="location.href='outbound.html'">Outbound effectiveness</button><button onclick="openDaily()">Daily work summary</button><button onclick="loadAll()">Refresh</button>
+      <button onclick="location.href='bookings.html'">Bookings</button><button onclick="location.href='outbound.html'">Outbound effectiveness</button><button onclick="location.href='calls.html'">Past guest console</button><button onclick="openDaily()">Daily work summary</button><button onclick="loadAll()">Refresh</button>
       <button class="ghost" onclick="signOut()">Sign out</button>
     </div>
   </header>
@@ -187,6 +187,11 @@
     <div class="grid">
       <div class="card"><h2>Calls — new vs existing</h2><p class="hint">What the phone activity is about (QUO calls)</p><canvas id="cResCall"></canvas></div>
       <div class="card"><h2>Emails — new vs existing</h2><p class="hint">info@ inbox · automated &amp; noise shown separately</p><canvas id="cResEmail"></canvas></div>
+    </div>
+
+    <div class="card full" id="pgCard">
+      <div class="lead-head"><div><h2 style="margin:0">Past guest campaign</h2><p class="hint" style="margin:2px 0 0">Calls &amp; texts to past guests · contacted → reached → hot lead → booked, for the selected dates · <a href="calls.html" style="color:var(--teal);font-weight:600">Open the call console ›</a></p></div></div>
+      <div id="pgWrap"><div class="hint">Loading…</div></div>
     </div>
 
     <div class="card full" id="tiersCard">
@@ -492,7 +497,24 @@ async function nbFetchAll(){
   }
   return out;
 }
+async function loadPastGuest(){
+  var w=document.getElementById('pgWrap'); if(!w) return;
+  try{
+    var rows=await rpc('f_pg_campaign'); rows=Array.isArray(rows)?rows:[];
+    var all=rows.find(function(r){return r.agent==='All';})||{contacted:0,reached:0,hot_leads:0,booked:0,revenue:0,callbacks_due:0};
+    var per=rows.filter(function(r){return r.agent!=='All';}).sort(function(a,b){return b.contacted-a.contacted;});
+    var steps=[['Contacted',all.contacted,'#1f9c98'],['Reached',all.reached,'#2bb3b0'],['Hot leads',all.hot_leads,'#e0b667'],['Booked',all.booked,'#e07a5f']];
+    var mx=Math.max(1,all.contacted||0);
+    var pct=function(a,b){return b?Math.round(100*a/b)+'%':'—';};
+    var bars=steps.map(function(st,i){var w2=Math.max(2,Math.round(100*(st[1]||0)/mx));var conv=i?'<span style="color:var(--muted);font-size:11.5px;margin-left:6px">'+pct(st[1]||0,steps[i-1][1]||0)+' of previous</span>':'';
+      return '<div style="display:flex;align-items:center;gap:10px;margin:6px 0"><div style="width:84px;font-size:12.5px;color:var(--muted)">'+st[0]+'</div><div style="flex:1;background:#f1f5f6;border-radius:6px;height:22px;position:relative"><div style="width:'+w2+'%;background:'+st[2]+';height:22px;border-radius:6px"></div></div><div style="width:150px;font-weight:700">'+(st[1]||0).toLocaleString()+conv+'</div></div>';}).join('');
+    var tiles='<div class="rstats" style="margin-top:12px"><div class="rstat"><div class="rstat-v">'+money(all.revenue)+'</div><div class="rstat-l">campaign revenue</div></div><div class="rstat"><div class="rstat-v">'+(all.callbacks_due||0)+'</div><div class="rstat-l">callbacks due now</div></div></div>';
+    var tbl=per.length?'<table class="dtable" style="margin-top:6px"><thead><tr><th>Agent</th><th>Contacted</th><th>Reached</th><th>Hot leads</th><th>Booked</th><th>Revenue</th></tr></thead><tbody>'+per.map(function(r){return '<tr><td><b>'+r.agent+'</b></td><td>'+r.contacted+'</td><td>'+r.reached+'</td><td>'+r.hot_leads+'</td><td>'+r.booked+'</td><td>'+money(r.revenue)+'</td></tr>';}).join('')+'</tbody></table>':'<div class="hint">No past-guest outreach in this date range.</div>';
+    w.innerHTML=bars+tiles+tbl+'<p class="hint" style="margin-top:8px">Reached = a connected call, a reply from the guest, or a “spoke” outcome in the console. Booked counts console bookings plus Cloudbeds reservations made after our first outreach (matched by email or phone).</p>';
+  }catch(e){w.innerHTML='<div class="hint">Could not load past guest campaign.</div>';}
+}
 async function loadAll(){
+  loadPastGuest();
   document.getElementById("updated").textContent="Refreshing…";
   try{
     const [kpiA,funnel,agents,email,inboundA,bsource,bguest,leads,rescall,resemail,pipeline,ancillary,bactivity,ahours,tsplit,paysum,tiers,ctier,staffcov,scomm,slist,callmin,erstats,erun]=await Promise.all([
@@ -617,6 +639,13 @@ function renderWorkSummary(ws){
     +comms
     +'<div class="hint" style="margin:2px 0 14px">Shared lines &amp; inbox: '+(sh.inbound_1800||0)+' inbound 1-800 call'+((sh.inbound_1800==1)?'':'s')+' · '+(sh.emails_all||0)+' emails in info@ (not split by person)</div>'
     +socLine
+    +(ws.pg?'<h4 style="margin:16px 0 6px;font-size:13px">Past guest campaign'+((ws.person&&ws.person!=='All staff')?' — '+esc(ws.person):'')+'</h4><div class="dstat-row">'
+      +'<div class="dstat"><b>'+(ws.pg.contacted||0)+'</b><span>guests contacted</span></div>'
+      +'<div class="dstat"><b>'+(ws.pg.reached||0)+'</b><span>reached</span></div>'
+      +'<div class="dstat"><b>'+(ws.pg.hot_leads||0)+'</b><span>hot leads</span></div>'
+      +'<div class="dstat"><b>'+(ws.pg.booked||0)+'</b><span>booked</span></div>'
+      +'<div class="dstat"><b>'+money2(ws.pg.revenue||0)+'</b><span>campaign revenue</span></div>'
+      +'</div>':'')
     +'<h4 style="margin:16px 0 4px;font-size:13px">Leads that day</h4>';
 }
 async function runDaily(){
@@ -628,6 +657,7 @@ async function runDaily(){
     var wsR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_work_summary',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d,p_person:person})});
     var ws=await wsR.json();
     try{var cmR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_call_minutes',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d,p_person:person})});var cm=await cmR.json();var cmo=(Array.isArray(cm)?cm[0]:cm)||{};if(ws&&ws.comms){ws.comms.call_min_in=cmo.incoming_min||0;ws.comms.call_min_out=cmo.outgoing_min||0;}}catch(_){}
+    try{var pgR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_pg_daily',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d,p_person:person})});if(pgR.ok&&ws&&typeof ws==='object'){ws.pg=await pgR.json();}}catch(_){}
     var lR=await fetch(SUPABASE_URL+'/rest/v1/rpc/f_daily_leads',{method:'POST',headers:hdr,body:JSON.stringify({p_day:d})});
     var rows=await lR.json();
     body.innerHTML=renderWorkSummary(ws)+renderDaily(d,rows);
