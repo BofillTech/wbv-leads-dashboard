@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>White Bay Villas — Leads Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{--ink:#0f2230;--muted:#6f8794;--teal:#1f9c98;--teal2:#2bb3b0;--sand:#e0b667;--coral:#e07a5f;--line:#e4ebee;--bg:#f4f6f5;--card:#ffffff;}
   *{box-sizing:border-box}
@@ -166,7 +167,7 @@
       <div class="kpis" id="kpis"></div>
     </div>
   </div>
-  <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily work summary</h2><div style="display:flex;gap:8px;align-items:center"><span id="copyMsg" style="font-size:12px;color:var(--teal);display:none">Copied!</span><button class="dbtn" onclick="copyDaily()">Copy summary</button><button class="dmodal-x" onclick="closeDaily()">Close</button></div></div><div class="dmodal-ctrl"><select id="dailyPerson"><option value="">All staff</option><option value="Rachel">Rachel</option><option value="Amy">Amy</option></select><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a person and date.</div></div></div></div>
+  <div id="dailyModal" class="dmodal"><div class="dmodal-box"><div class="dmodal-head"><h2 style="margin:0;font-size:17px">Daily work summary</h2><div style="display:flex;gap:8px;align-items:center"><span id="copyMsg" style="font-size:12px;color:var(--teal);display:none">Copied!</span><button class="dbtn" onclick="copyDailyImage()">Copy image</button><button class="dbtn" onclick="copyDaily()">Copy text</button><button class="dmodal-x" onclick="closeDaily()">Close</button></div></div><div class="dmodal-ctrl"><select id="dailyPerson"><option value="">All staff</option><option value="Rachel">Rachel</option><option value="Amy">Amy</option></select><input type="date" id="dailyDate"><button class="dbtn" onclick="runDaily()">Show</button></div><div id="dailyBody"><div class="hint">Pick a person and date.</div></div></div></div>
   <div class="wrap">
 
     <div class="grid">
@@ -610,6 +611,35 @@ function copyDaily(){
   function done(ok){var m=document.getElementById('copyMsg');if(m){m.textContent=ok?'Copied!':'Copy failed';m.style.color=ok?'var(--teal)':'var(--coral)';m.style.display='inline';setTimeout(function(){m.style.display='none';},1600);}}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){done(true);},function(){fallbackCopy(t,done);});}
   else{fallbackCopy(t,done);}
+}
+function copyDailyImage(){
+  var b=document.getElementById('dailyBody'); if(!b) return;
+  function msg(txt,ok){var m=document.getElementById('copyMsg');if(m){m.textContent=txt;m.style.color=ok?'var(--teal)':'var(--coral)';m.style.display='inline';setTimeout(function(){m.style.display='none';},2200);}}
+  if(typeof html2canvas==='undefined'){msg('Image tool loading…',false);return;}
+  msg('Rendering…',true);
+  // wrap the board with padding + a title header for a clean email-ready image
+  var wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:-99999px;top:0;background:#ffffff;padding:22px 24px;width:'+Math.max(b.scrollWidth,680)+'px;font-family:inherit';
+  var hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 14px;padding-bottom:12px;border-bottom:2px solid #2bb3b0';
+  hdr.innerHTML='<span style="font-size:17px;font-weight:700;color:#0f2230">White Bay Villas</span><span style="font-size:13px;color:#6b7b85">Daily Work Summary</span>';
+  wrap.appendChild(hdr);
+  var clone=b.cloneNode(true);
+  wrap.appendChild(clone);
+  document.body.appendChild(wrap);
+  html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,logging:false,useCORS:true}).then(function(canvas){
+    document.body.removeChild(wrap);
+    canvas.toBlob(function(blob){
+      if(!blob){msg('Render failed',false);return;}
+      var fname='wbv-daily-summary-'+((document.getElementById('dailyDate')||{}).value||'')+'.png';
+      function dl(){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},1000);msg('Image downloaded — attach it to the email',true);}
+      if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+        navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){
+          msg('Image copied — paste into the email',true);
+        },function(){dl();});
+      } else { dl(); }
+    },'image/png');
+  }).catch(function(e){ if(wrap.parentNode)document.body.removeChild(wrap); msg('Render failed',false); });
 }
 function money2(n){return '$'+(Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 function renderWorkSummary(ws){
