@@ -146,6 +146,7 @@ var ICONS={
   mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>',
   globe:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
   ota:'<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/>',
+  social:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
   dot:'<circle cx="12" cy="12" r="5"/>'
 };
 function svg(name){return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px">'+(ICONS[name]||ICONS.dot)+'</svg>';}
@@ -153,16 +154,16 @@ function touchKind(ch,via){
   ch=(ch||'').toLowerCase(); via=(via||'').toLowerCase();
   if(ch==='ota') return {label:'OTA',color:'#c2410c',icon:'ota'};
   if(ch==='web'||ch==='form'||ch==='website') return {label:'Website form',color:'#3b7dd8',icon:'globe'};
+  if(/social|instagram|facebook|messenger|whatsapp|tiktok/.test(ch+' '+via)) return {label:'Social',color:'#c13584',icon:'social'};
   if(ch==='phone'&&/grace/.test(via)) return {label:'AI agent',color:'#7a5cc0',icon:'phone'};
   if(ch==='phone'||/signalwire/.test(via)) return {label:'1-800',color:'#e07a5f',icon:'phonein'};
   if(ch==='call') return {label:'Call',color:'#1f9c98',icon:'phone'};
   if(ch==='text') return {label:'Text',color:'#2bb3b0',icon:'chat'};
   if(ch==='email') return {label:'Email',color:'#c79116',icon:'mail'};
-  if(/social|instagram|facebook/.test(ch)) return {label:'Social',color:'#c13584',icon:'chat'};
   return {label:'Direct',color:'#9bb0bb',icon:'dot'};
 }
 function renderLegend(){
-  var items=[['phone','Call','#1f9c98'],['chat','Text','#2bb3b0'],['phonein','1-800','#e07a5f'],['mail','Email','#c79116'],['globe','Website form','#3b7dd8'],['ota','OTA','#c2410c'],['phone','AI agent','#7a5cc0'],['dot','Direct / Booking Engine','#9bb0bb']];
+  var items=[['phone','Call','#1f9c98'],['chat','Text','#2bb3b0'],['phonein','1-800','#e07a5f'],['mail','Email','#c79116'],['globe','Website form','#3b7dd8'],['ota','OTA','#c2410c'],['phone','AI agent','#7a5cc0'],['social','Social','#c13584'],['dot','Direct / Booking Engine','#9bb0bb']];
   document.getElementById('legend').innerHTML='<span class="cap">Original touchpoint:</span>'+items.map(function(x){return '<span class="lg-t" style="color:'+x[2]+'">'+svg(x[0])+' '+x[1]+'</span>';}).join('');
 }
 function origCell(r){
