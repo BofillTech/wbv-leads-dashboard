@@ -186,11 +186,12 @@ function render(rows){
     var dk=dayKey(r.occurred_at);
     if(dk!==lastDay){ h+='<tr class="daysep"><td colspan="8">'+esc(dk)+'</td></tr>'; lastDay=dk; }
     var is800=/1-800/.test(r.line_label||'');
+    var fwd=(r.other_name&&r.other_name.indexOf('1-800')>-1);
     var dcls=r.direction==='inbound'?'dir-in':'dir-out';
     h+='<tr class="crow">'
       +'<td class="num">'+timeStr(r.occurred_at)+'</td>'
       +'<td class="'+(is800?'line-800':'')+'">'+esc(r.line_label||'—')+'</td>'
-      +'<td><span class="num">'+fmtPhone(r.other_number)+'</span>'+(r.other_name?'<br><span class="who">'+esc(r.other_name)+'</span>':'')+'</td>'
+      +'<td>'+(fwd?'<span class="badge bg-hu">&#8618; via 1-800 &middot; press 1</span><br><span class="who num">'+fmtPhone(r.other_number)+'</span>':('<span class="num">'+fmtPhone(r.other_number)+'</span>'+(r.other_name?'<br><span class="who">'+esc(r.other_name)+'</span>':'')))+'</td>'
       +'<td><span class="dirpill '+dcls+'">'+(r.direction==='inbound'?'In':'Out')+'</span></td>'
       +'<td><span class="badge '+dispClass(r.disposition)+'">'+esc(r.disposition)+'</span></td>'
       +'<td class="num">'+fmtDur(r.duration_sec)+'</td>'
