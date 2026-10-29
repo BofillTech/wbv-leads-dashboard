@@ -68,6 +68,7 @@
       <option value="outbound">Outbound only</option>
     </select>
     <select class="flt" id="lineFilter" title="Line"><option value="">All lines</option></select>
+    <select class="flt" id="dispFilter" title="Outcome"><option value="">All outcomes</option><option value="answered">Answered</option><option value="missed">Missed</option><option value="voicemail">Voicemail</option><option value="short">Dropped / hang-up</option></select>
     <span class="lbl">Range:</span>
     <div class="seg" id="seg">
       <button data-range="7d" class="active">7 days</button>
@@ -89,8 +90,9 @@
     <span><span class="badge bg-ans">Answered</span></span>
     <span><span class="badge bg-miss">Missed</span></span>
     <span><span class="badge bg-vm">Voicemail</span></span>
+    <span><span class="badge bg-hu">Dropped &lt;30s</span></span>
     <span><span class="badge bg-hu">Hang-up &lt;5s</span></span>
-    <span class="muted">· 1-800 is the main line. Grace (AI) only picks up when no one answers — those rows show "Grace (AI)" under Answered by. Known callers are matched to past-guest names.</span>
+    <span class="muted">· On the 1-800, "Dropped &lt;30s" = caller heard the prompt and hung up before engaging. 1-800 is the main line. Grace (AI) only picks up when no one answers — those rows show "Grace (AI)" under Answered by. Known callers are matched to past-guest names.</span>
   </div>
   <div class="card"><div id="list"><div class="empty">Loading…</div></div></div>
   <p class="hint muted" style="font-size:12px;margin:12px 4px">
@@ -146,7 +148,7 @@ function fmtDur(s){ s=Number(s)||0; var m=Math.floor(s/60), ss=s%60; return m+":
 function dispClass(d){
   d=(d||'').toLowerCase();
   if(d.indexOf('answered')>-1) return 'bg-ans';
-  if(d.indexOf('hang-up')>-1) return 'bg-hu';
+  if(d.indexOf('hang-up')>-1||d.indexOf('dropped')>-1) return 'bg-hu';
   if(d.indexOf('voicemail')>-1 && d.indexOf('missed')===-1) return 'bg-vm';
   if(d.indexOf('missed')>-1) return 'bg-miss';
   return 'bg-oth';
@@ -157,9 +159,17 @@ function timeStr(iso){ return new Date(iso).toLocaleTimeString([],{hour:'numeric
 function applyFilters(){
   var dir=document.getElementById('dirFilter').value;
   var line=document.getElementById('lineFilter').value;
+  var disp=document.getElementById('dispFilter').value;
   var rows=ALL.filter(function(r){
     if(dir!=='all' && r.direction!==dir) return false;
     if(line && r.line_label!==line) return false;
+    if(disp){
+      var d=(r.disposition||'');
+      if(disp==='answered' && !/answered/i.test(d)) return false;
+      if(disp==='missed' && !/missed/i.test(d)) return false;
+      if(disp==='voicemail' && !(/voicemail/i.test(d) && !/missed/i.test(d))) return false;
+      if(disp==='short' && !/hang-up|dropped/i.test(d)) return false;
+    }
     return true;
   });
   render(rows);
@@ -171,12 +181,14 @@ function render(rows){
   var miss=rows.filter(r=>/missed/i.test(r.disposition)).length;
   var vm=rows.filter(r=>/voicemail/i.test(r.disposition)&&!/missed/i.test(r.disposition)).length;
   var hu=rows.filter(r=>/hang-up/i.test(r.disposition)).length;
+  var dropped=rows.filter(r=>/dropped/i.test(r.disposition)).length;
   var talk=rows.filter(r=>/answered/i.test(r.disposition));
   var avg=talk.length?Math.round(talk.reduce((s,r)=>s+(Number(r.duration_sec)||0),0)/talk.length):0;
   sb.innerHTML='<div class="stat"><b>'+n+'</b><span>Calls ('+range.label+')</span></div>'
     +'<div class="stat ans"><b>'+ans+'</b><span>Answered</span></div>'
     +'<div class="stat miss"><b>'+miss+'</b><span>Missed</span></div>'
     +'<div class="stat vm"><b>'+vm+'</b><span>Voicemail</span></div>'
+    +'<div class="stat hu"><b>'+dropped+'</b><span>Dropped &lt;30s</span></div>'
     +'<div class="stat hu"><b>'+hu+'</b><span>Hang-up &lt;5s</span></div>'
     +'<div class="stat t"><b>'+fmtDur(avg)+'</b><span>Avg talk time</span></div>';
   if(!n){ L.innerHTML='<div class="empty">No calls in this window / filter.</div>'; return; }
@@ -230,6 +242,7 @@ document.getElementById("seg").addEventListener("click",function(e){
 document.getElementById("applyCustom").addEventListener("click",function(){ if(customRange()) load(); });
 document.getElementById("dirFilter").addEventListener("change",applyFilters);
 document.getElementById("lineFilter").addEventListener("change",applyFilters);
+document.getElementById("dispFilter").addEventListener("change",applyFilters);
 presetRange('7d'); load();
 </script>
 </body>
