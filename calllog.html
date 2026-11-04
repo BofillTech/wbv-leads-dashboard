@@ -46,6 +46,8 @@
   .line-800{color:var(--coral);font-weight:700}
   .num{font-variant-numeric:tabular-nums}
   .who{color:var(--muted);font-size:11.5px}
+  .tag{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:6px;margin:3px 4px 0 0;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+  .tag-rep{background:#e6f0f7;color:#2f5e86} .tag-new{background:#eef3f3;color:#6b7b85} .tag-res{background:#e3f3ec;color:#1b7a52}
   .sumline{color:var(--muted);font-size:11.5px;max-width:420px;overflow-wrap:anywhere}
   .empty{color:var(--muted);font-size:13px;padding:16px 10px}
   #updated{color:var(--muted);font-size:11.5px}
@@ -92,6 +94,9 @@
     <span><span class="badge bg-vm">Voicemail</span></span>
     <span><span class="badge bg-hu">Dropped &lt;30s</span></span>
     <span><span class="badge bg-hu">Hang-up &lt;5s</span></span>
+    <span style="margin-left:10px"><span class="tag tag-rep">Repeat</span> called before</span>
+    <span><span class="tag tag-new">New #</span> first time</span>
+    <span><span class="tag tag-res">Res 12/25</span> has an upcoming reservation</span>
     <span class="muted">· On the 1-800, "Dropped &lt;30s" = caller heard the prompt and hung up before engaging. 1-800 is the main line. Grace (AI) only picks up when no one answers — those rows show "Grace (AI)" under Answered by. Known callers are matched to past-guest names.</span>
   </div>
   <div class="card"><div id="list"><div class="empty">Loading…</div></div></div>
@@ -174,6 +179,7 @@ function applyFilters(){
   });
   render(rows);
 }
+function resDate(d){ if(!d) return ''; var p=(''+d).split('-'); return p.length===3 ? (parseInt(p[1],10))+'/'+(parseInt(p[2],10))+'/'+p[0].slice(2) : d; }
 function render(rows){
   var L=document.getElementById('list'), sb=document.getElementById('statbar');
   var n=rows.length;
@@ -200,10 +206,17 @@ function render(rows){
     var is800=/1-800/.test(r.line_label||'');
     var fwd=(r.other_name&&r.other_name.indexOf('1-800')>-1);
     var dcls=r.direction==='inbound'?'dir-in':'dir-out';
+    var callerMain=fwd?'<span class="badge bg-hu">&#8618; via 1-800 &middot; press 1</span><br><span class="who num">'+fmtPhone(r.other_number)+'</span>':('<span class="num">'+fmtPhone(r.other_number)+'</span>'+(r.other_name?'<br><span class="who">'+esc(r.other_name)+'</span>':''));
+    var tags='';
+    if(!fwd && r.direction==='inbound'){
+      if(r.caller_prior) tags+='<span class="tag tag-rep">Repeat'+(r.caller_total&&r.caller_total>1?' '+r.caller_total+'&times;':'')+'</span>';
+      else tags+='<span class="tag tag-new">New #</span>';
+      if(r.future_checkin) tags+='<span class="tag tag-res">Res '+resDate(r.future_checkin)+'</span>';
+    }
     h+='<tr class="crow">'
       +'<td class="num">'+timeStr(r.occurred_at)+'</td>'
       +'<td class="'+(is800?'line-800':'')+'">'+esc(r.line_label||'—')+'</td>'
-      +'<td>'+(fwd?'<span class="badge bg-hu">&#8618; via 1-800 &middot; press 1</span><br><span class="who num">'+fmtPhone(r.other_number)+'</span>':('<span class="num">'+fmtPhone(r.other_number)+'</span>'+(r.other_name?'<br><span class="who">'+esc(r.other_name)+'</span>':'')))+'</td>'
+      +'<td>'+callerMain+(tags?'<br>'+tags:'')+'</td>'
       +'<td><span class="dirpill '+dcls+'">'+(r.direction==='inbound'?'In':'Out')+'</span></td>'
       +'<td><span class="badge '+dispClass(r.disposition)+'">'+esc(r.disposition)+'</span></td>'
       +'<td class="num">'+fmtDur(r.duration_sec)+'</td>'
